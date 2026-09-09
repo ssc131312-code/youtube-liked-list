@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>관심있는 영상 리스트</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="좋아요 리스트">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2a78d6">
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-raised: #ffffff;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --border: rgba(11,11,11,0.10);
+    --accent: #2a78d6;
+    --accent-soft: #cde2fb;
+    --accent-ink: #0d366b;
+    --chip-bg: #eef2fb;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --series-5: #e87ba4;
+    --series-6: #008300;
+    --series-other: #c3c2b7;
+    --fav-bg: #ffe3ea;
+    --fav-border: #e0668a;
+    --fav-ink: #9c1c46;
+    --star-on: #eda100;
+    --danger: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --surface-raised: #212120;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --grid: #2c2c2a; --border: rgba(255,255,255,0.10);
+      --accent: #3987e5; --accent-soft: #17314f; --accent-ink: #cde2fb; --chip-bg: #17314f;
+      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+      --series-5: #d55181; --series-6: #008300; --series-other: #52514e;
+      --fav-bg: #4a1f2c; --fav-border: #a34765; --fav-ink: #ffb8cf; --star-on: #c98500;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-raised: #212120;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+    --grid: #2c2c2a; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --accent-soft: #17314f; --accent-ink: #cde2fb; --chip-bg: #17314f;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #008300; --series-other: #52514e;
+    --fav-bg: #4a1f2c; --fav-border: #a34765; --fav-ink: #ffb8cf; --star-on: #c98500;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; background: var(--page); color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+    font-variant-numeric: tabular-nums; line-height: 1.5;
+    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 88px; }
+
+  /* ---- 로그인 화면 ---- */
+  #loginScreen {
+    min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .login-card {
+    max-width: 340px; width: 100%; text-align: center;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
+    padding: 36px 28px; box-shadow: 0 20px 40px -28px rgba(0,0,0,0.35);
+  }
+  .login-logo {
+    width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 18px; display: block;
+  }
+  .login-card h1 { font-size: 19px; margin: 0 0 8px; }
+  .login-card p { font-size: 13px; color: var(--text-secondary); margin: 0 0 24px; line-height: 1.6; }
+  .google-btn {
+    appearance: none; width: 100%; display: inline-flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: 14px;
+    font-weight: 600; cursor: pointer;
+  }
+  .google-btn:hover { background: var(--chip-bg); }
+  .google-btn svg { width: 18px; height: 18px; flex: none; }
+  .login-status { margin-top: 16px; font-size: 12.5px; color: var(--text-muted); min-height: 16px; }
+  .login-status.err { color: var(--danger); }
+  .setup-note {
+    margin-top: 22px; text-align: left; font-size: 11.5px; color: var(--text-muted);
+    background: var(--chip-bg); border-radius: 8px; padding: 10px 12px; display: none;
+  }
+  .setup-note.show { display: block; }
+
+  /* ---- 상단바 ---- */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+  .topbar .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .topbar .who img { width: 26px; height: 26px; border-radius: 50%; flex: none; }
+  .topbar .who span { font-size: 12.5px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .icon-btn {
+    appearance: none; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 600;
+    padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap;
+  }
+  .icon-btn:hover { background: var(--chip-bg); }
+
+  header.top { margin-bottom: 24px; }
+  .top-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
+  h1 { font-size: 24px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; text-wrap: balance; }
+  .sub { color: var(--text-secondary); font-size: 13.5px; margin: 0; }
+  .export-btn {
+    flex: none; appearance: none; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-primary); font: inherit; font-size: 13px; font-weight: 600;
+    padding: 9px 16px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 2px;
+  }
+  .export-btn:hover { background: var(--chip-bg); border-color: var(--accent); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 20px 0 28px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat .label { font-size: 11.5px; color: var(--text-muted); margin: 0 0 6px; }
+  .stat .value { font-size: 20px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .stat .value .unit { font-size: 12.5px; font-weight: 500; color: var(--text-secondary); margin-left: 2px; }
+  .stat .hint { font-size: 11.5px; color: var(--text-secondary); margin: 4px 0 0; }
+
+  .tabs { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
+  .tab { appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 7px; cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--accent); color: #fff; }
+
+  .admin-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .admin-toggle {
+    appearance: none; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-secondary); font: inherit; font-size: 12.5px; font-weight: 600;
+    padding: 9px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 16px;
+  }
+  .admin-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .admin-toggle:disabled { opacity: 0.6; cursor: default; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 16px 8px; margin-bottom: 20px; }
+  .panel h2 { font-size: 15px; margin: 0 0 4px; }
+  .panel .panel-sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 16px; }
+
+  .bar-row { display: grid; grid-template-columns: minmax(96px, 200px) 1fr 60px; align-items: center; gap: 8px; padding: 8px 4px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+  .bar-row:hover { background: var(--chip-bg); }
+  .bar-row.selected { border-color: var(--accent); background: var(--chip-bg); }
+  .bar-row .name { display: flex; align-items: center; gap: 2px; min-width: 0; font-size: 13px; font-weight: 600; }
+  .bar-row .name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 20px; }
+  .bar-row.selected .name { color: var(--accent-ink); }
+  .bar-track { position: relative; height: 20px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+  .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; transition: width 0.35s ease; }
+  .bar-row:not(.top) .bar-fill { opacity: 0.72; }
+  .bar-row.selected .bar-fill { opacity: 1; }
+  .bar-count { font-size: 13px; font-weight: 700; text-align: right; }
+  .bar-count .pct { display: block; font-size: 11px; font-weight: 500; color: var(--text-muted); }
+  .top-badge { flex: none; display: inline-block; font-size: 10px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 4px; padding: 1px 5px; }
+  .topic-del, .topic-edit {
+    flex: none; appearance: none; border: none; background: transparent; color: var(--text-muted);
+    font-size: 15px; line-height: 1; cursor: pointer; padding: 6px 7px; border-radius: 4px;
+  }
+  .topic-del:hover { color: #fff; background: var(--danger); }
+  .topic-edit:hover { color: #fff; background: var(--accent); }
+
+  .comp-wrap { margin-bottom: 20px; }
+  .comp-label { font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
+  .comp-bar { display: flex; gap: 2px; height: 26px; border-radius: 7px; overflow: hidden; margin: 0 0 12px; background: var(--grid); }
+  .comp-seg { height: 100%; min-width: 3px; }
+  .comp-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
+  .comp-legend li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+  .comp-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .comp-legend b { color: var(--text-primary); font-weight: 700; }
+
+  .listbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 14px; }
+  .search { flex: 1 1 220px; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: 15px; }
+  .search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  select.sortsel { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: 14px; }
+  .clear-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 20px; padding: 8px 12px; cursor: pointer; }
+  .fav-filter { appearance: none; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-secondary); font: inherit; font-size: 12.5px; font-weight: 600; padding: 10px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .fav-filter.active { background: var(--fav-bg); border-color: var(--fav-border); color: var(--fav-ink); }
+  .result-count { font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px; }
+
+  .vid-list { display: flex; flex-direction: column; gap: 1px; background: var(--grid); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .vid { display: grid; grid-template-columns: 96px 1fr auto; gap: 4px 12px; align-items: center; background: var(--surface-raised); padding: 10px 12px; text-decoration: none; color: inherit; cursor: pointer; }
+  .vid:hover { background: var(--chip-bg); }
+  .vid-thumb { grid-column: 1; grid-row: 1 / -1; width: 96px; height: 54px; object-fit: cover; border-radius: 8px; background: var(--grid); display: block; }
+  .vid .title { grid-column: 2; font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+  .pref-row { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
+  .fav-btn, .star-btn { appearance: none; border: none; background: transparent; padding: 8px; margin: -8px; cursor: pointer; font-size: 17px; line-height: 1; color: var(--text-muted); }
+  .fav-btn.on { color: #e0668a; }
+  .star-btn.on { color: var(--star-on); }
+  .stars { display: inline-flex; }
+  .vid .meta { grid-column: 2; font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+  .vid .meta .chip { background: var(--chip-bg); color: var(--text-secondary); border-radius: 4px; padding: 1px 6px; }
+  .vid .metrics { grid-column: 3; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 8px; text-align: right; font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
+  .vid .metrics .views b { display: block; font-size: 13px; color: var(--text-primary); font-weight: 700; }
+  .link-btn { appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 11px; padding: 6px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  .link-btn:hover { background: var(--chip-bg); }
+  .link-btn.copied { border-color: var(--fav-border); color: var(--fav-ink); }
+  .vid .edit-row { grid-column: 2; display: flex; align-items: center; gap: 8px; margin-top: 6px; cursor: default; }
+  .vid .edit-row label { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
+  .edit-select { font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); max-width: 220px; }
+
+  .empty { padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+  footer.note { margin-top: 28px; font-size: 11.5px; color: var(--text-muted); }
+
+  /* ---- 로딩 오버레이 ---- */
+  #loadingOverlay {
+    position: fixed; inset: 0; background: rgba(13,13,13,0.55); backdrop-filter: blur(2px);
+    display: none; align-items: center; justify-content: center; z-index: 50;
+  }
+  #loadingOverlay.show { display: flex; }
+  .loading-card { background: var(--surface-raised); border-radius: 14px; padding: 22px 26px; text-align: center; max-width: 260px; box-shadow: 0 20px 40px -28px rgba(0,0,0,0.5); }
+  .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); margin: 0 auto 12px; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-card p { margin: 0; font-size: 13px; color: var(--text-secondary); }
+
+  #app { display: none; }
+  #app.show { display: block; }
+</style>
+</head>
+<body>
+
+  <div id="loginScreen">
+    <div class="login-card">
+      <img class="login-logo" src="icons/icon-192.png" alt="">
+      <h1>관심있는 영상 리스트</h1>
+      <p>본인의 구글 계정으로 로그인하면, 유튜브 좋아요 목록을 가져와서 분류해 보여줍니다. 데이터는 본인 구글 드라이브 안에만 저장됩니다.</p>
+      <button class="google-btn" id="signInBtn">
+        <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.7 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34 5.1 29.3 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.4 19 12 24 12c3.1 0 5.8 1.1 8 3l6-6C34 5.1 29.3 3 24 3 16.1 3 9.3 7.6 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 36.4 26.7 37 24 37c-5.3 0-9.8-3.3-11.4-8l-6.6 5.1C9.2 40.4 16 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1 3-3.2 5.5-6.1 7l6.2 5.2C38.6 37.9 45 32 45 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+        Google 계정으로 로그인
+      </button>
+      <p class="login-status" id="loginStatus"></p>
+      <div class="setup-note" id="setupNote">
+        아직 이 앱을 쓸 준비가 안 됐습니다 — <code>app.js</code> 맨 위 <code>CLIENT_ID</code>를 구글 클라우드 콘솔에서 발급받은 값으로 채워주세요.
+      </div>
+    </div>
+  </div>
+
+  <div id="app">
+    <div class="wrap">
+      <div class="topbar">
+        <div class="who">
+          <img id="whoAvatar" src="" alt="" hidden>
+          <span id="whoName"></span>
+        </div>
+        <button class="icon-btn" id="signOutBtn">로그아웃</button>
+      </div>
+
+      <header class="top">
+        <div class="top-row">
+          <div>
+            <p class="eyebrow">YouTube 좋아요 분석</p>
+            <h1>관심있는 영상 리스트</h1>
+          </div>
+          <button class="export-btn" id="exportBtn" title="지금 화면에 보이는 목록 그대로 저장됩니다">⬇ CSV로 저장</button>
+        </div>
+        <p class="sub">좋아요 표시한 영상 <strong id="totalCount">-</strong>개를 두 가지 기준으로 분류했습니다. 막대를 탭하면 해당 분류의 영상만 볼 수 있어요.</p>
+      </header>
+
+      <div class="stats" id="stats"></div>
+
+      <div class="tabs" role="tablist" aria-label="분류 기준">
+        <button class="tab" role="tab" id="tab-official" aria-selected="true">공식 카테고리</button>
+        <button class="tab" role="tab" id="tab-topic" aria-selected="false">관심 주제</button>
+      </div>
+
+      <div class="admin-row">
+        <button class="admin-toggle" id="refreshBtn">🔄 새 데이터 받기</button>
+      </div>
+
+      <section class="panel">
+        <h2 id="panelTitle">공식 카테고리별 분포</h2>
+        <p class="panel-sub" id="panelSub">YouTube가 영상마다 매긴 공식 분류 기준입니다.</p>
+        <div class="comp-wrap">
+          <p class="comp-label">전체 구성 비율</p>
+          <div class="comp-bar" id="compBar"></div>
+          <ul class="comp-legend" id="compLegend"></ul>
+        </div>
+        <div id="barChart"></div>
+      </section>
+
+      <section class="panel">
+        <h2>영상 목록</h2>
+        <p class="panel-sub">제목·채널로 검색하거나 정렬해서 둘러보세요. 제목을 탭하면 새 탭에서 영상이 열립니다.</p>
+        <div class="listbar">
+          <input class="search" id="searchInput" type="text" placeholder="제목 또는 채널명 검색" />
+          <select class="sortsel" id="sortSelect">
+            <option value="date">최신순</option>
+            <option value="views">조회수 높은순</option>
+            <option value="likes">영상 좋아요 많은순</option>
+          </select>
+          <button class="fav-filter" id="favFilterBtn">🤍 즐겨찾기만 보기</button>
+          <button class="clear-chip" id="clearChip" hidden>✕ <span id="clearLabel"></span></button>
+        </div>
+        <p class="result-count" id="resultCount"></p>
+        <div class="vid-list" id="vidList"></div>
+      </section>
+
+      <footer class="note">
+        분류 방식: 공식 카테고리는 YouTube API가 제공하는 값, 관심 주제는 제목 키워드 기반 추정 분류입니다 (참고용, 100% 정확하지 않을 수 있음). 즐겨찾기·별점·분류수정은 본인 구글 드라이브(앱 전용 저장공간)에 저장됩니다.
+      </footer>
+    </div>
+  </div>
+
+  <div id="loadingOverlay">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <p id="loadingText">불러오는 중...</p>
+    </div>
+  </div>
+
+<script src="app.js"></script>
+</body>
+</html>
