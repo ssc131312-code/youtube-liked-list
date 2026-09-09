@@ -4,7 +4,7 @@
  * 설정 — 구글 클라우드 콘솔에서 만든 "웹 애플리케이션" OAuth 클라이언트 ID로 교체하세요.
  * 자세한 절차는 같은 폴더의 설정방법.txt 참고.
  * ========================================================================= */
-const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+const CLIENT_ID = '876374595338-b2ha6mbvt10frs6jobe2r171q5nnnf1a.apps.googleusercontent.com';
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
   'https://www.googleapis.com/auth/drive.appdata',
