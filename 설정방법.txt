@@ -2,55 +2,72 @@
 
 이 폴더(아이폰_웹앱)는 파이썬 프로그램이 아니라 "웹사이트"입니다.
 인터넷 어딘가(https 주소)에 올려두고, 아이폰 사파리로 열어서 "홈 화면에 추가"하면
-앱처럼 아이콘을 눌러서 씁니다. 로그인/데이터 저장은 전부 구글(유튜브 API +
-구글 드라이브)과 브라우저에서 직접 주고받고, 별도 서버는 없습니다.
+앱처럼 아이콘을 눌러서 씁니다.
+
+로그인은 구글 계정(유튜브 API 읽기 권한)으로 하고, 즐겨찾기·별점·분류수정 같은
+내 데이터는 Firebase(Firestore)에, 웹사이트 자체는 Firebase Hosting에 올라갑니다.
+(예전 버전은 구글 드라이브 앱데이터 폴더를 썼지만, 지금은 Firestore로 바뀌었습니다.)
+
+현재 이미 배포된 주소: https://liked-export-505817.web.app
+(Firebase 프로젝트: youtube-liked-export-505817 · 이미 쓰던 YouTube API 프로젝트와 동일)
 
 ────────────────────────────────────
 1단계. 구글 클라우드 콘솔 설정 (딱 한 번만 하면 됨)
 ────────────────────────────────────
-console.cloud.google.com 에서, 기존에 쓰던 프로젝트(관심있는 영상 리스트용) 그대로 사용:
+console.cloud.google.com 에서, 기존에 쓰던 프로젝트(youtube-liked-export-505817) 그대로 사용:
 
-1) "API 및 서비스 → 라이브러리"에서 아래 두 개를 사용 설정(Enable):
+1) "API 및 서비스 → 라이브러리"에서 아래를 사용 설정(Enable):
    - YouTube Data API v3           (이미 켜져 있을 가능성 높음)
-   - Google Drive API              (새로 켜야 함)
+   - Cloud Firestore API           (이미 켜둠)
 
 2) "API 및 서비스 → OAuth 동의 화면"
    - 이미 만들어져 있다면 그대로 두고, "테스트 사용자"에 이 앱을 쓸 사람들의
      구글 이메일을 전부 추가 (본인 + 다른 분 계정).
-   - 범위(스코프) 추가: youtube.readonly, drive.appdata,
-     userinfo.profile, userinfo.email (이미 있는 범위는 건너뛰어도 됨)
+   - 범위(스코프): youtube.readonly, userinfo.profile, userinfo.email
+     (drive.appdata는 더 이상 필요 없음 — 이미 있어도 무방)
 
-3) "API 및 서비스 → 사용자 인증 정보 → + 사용자 인증 정보 만들기 → OAuth 클라이언트 ID"
-   - 애플리케이션 유형: **웹 애플리케이션** (기존 데스크톱용과는 별도로 새로 만드는 것)
-   - 승인된 자바스크립트 원본(Authorized JavaScript origins)에 이 웹앱을 올릴 주소를
-     추가. 예) https://내깃헙아이디.github.io  또는 나중에 만들 개인 도메인 주소
-     (테스트 중에는 http://localhost:포트번호 도 추가해두면 편함)
-   - 만들고 나면 "xxxxx.apps.googleusercontent.com" 형태의 클라이언트 ID가 나옵니다.
-
-4) 이 폴더의 app.js 맨 위쪽:
-       const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-   이 부분을 방금 발급받은 클라이언트 ID로 바꿔주세요. (이것만 하면 코드 설정 끝)
+3) "API 및 서비스 → 사용자 인증 정보"에서 기존 웹 애플리케이션용 OAuth 클라이언트 ID
+   (876374595338-b2ha6mbvt10frs6jobe2r171q5nnnf1a)를 열어서,
+   "승인된 자바스크립트 원본(Authorized JavaScript origins)"에 아래 주소를 추가:
+     https://liked-export-505817.web.app
+     https://youtube-liked-export-505817.firebaseapp.com
+   (테스트 중에는 http://localhost:포트번호 도 추가해두면 편함)
 
 ────────────────────────────────────
-2단계. 어딘가에 올리기 (호스팅)
+2단계. Firebase Authentication에서 구글 로그인 허용 (딱 한 번만 하면 됨)
 ────────────────────────────────────
-이 폴더(아이폰_웹앱) 안의 파일 전체를 https 주소로 접근 가능한 곳에 올리면 됩니다.
-개인 도메인이 아직 준비 전이라면, 우선 GitHub Pages 같은 무료 서비스로 먼저 테스트
-해보고, 나중에 도메인이 생기면 1단계의 "승인된 자바스크립트 원본"만 새 주소로
-바꿔주면 됩니다 (코드는 그대로 둬도 됨).
+아래 주소를 열어서 "Google" 제공업체를 사용 설정(Enable)해주세요:
+  https://console.firebase.google.com/project/youtube-liked-export-505817/authentication/providers
+(처음 열면 "시작하기" 버튼부터 눌러야 할 수 있습니다.)
 
 ────────────────────────────────────
-3단계. 아이폰에 설치
+3단계. 배포하기 (호스팅 업데이트)
 ────────────────────────────────────
-1) 아이폰 사파리(Safari)로 올려둔 주소를 엽니다.
+이 폴더 안에서 파일(index.html, app.js 등)을 수정한 뒤 아래 명령으로 다시 올리면 됩니다:
+  firebase deploy --only hosting --project youtube-liked-export-505817
+
+Firestore 보안 규칙(firestore.rules)을 고쳤을 때는:
+  firebase deploy --only firestore:rules --project youtube-liked-export-505817
+
+★ app.js를 고칠 때마다 index.html 맨 아래 <script src="app.js?v=..."> 의 v= 값을
+  반드시 새 값으로 바꿀 것! 안 바꾸면 이미 켜본 적 있는 브라우저가 예전 app.js를
+  계속 캐시에서 재사용해서(HTTP 캐시는 배포해도 자동으로 안 지워짐), 새 index.html과
+  예전 app.js가 서로 안 맞아 화면이 먹통이 되는 문제가 생긴다(실제로 한 번 겪었음).
+
+────────────────────────────────────
+4단계. 아이폰에 설치
+────────────────────────────────────
+1) 아이폰 사파리(Safari)로 https://liked-export-505817.web.app 을 엽니다.
 2) 하단 공유 버튼(⬆️) → "홈 화면에 추가"를 누릅니다.
 3) 홈 화면에 생긴 아이콘을 누르면, 앱처럼 전체화면으로 열립니다.
 4) 처음 열면 로그인 화면이 뜹니다. "Google 계정으로 로그인"을 누르고, 1단계에서
    테스트 사용자로 등록한 계정으로 로그인 + 동의합니다.
 5) "🔄 새 데이터 받기"를 눌러 본인의 좋아요 목록을 처음 받아옵니다.
 
-* 즐겨찾기·별점·분류수정은 본인 구글 드라이브의 "앱 데이터 폴더"(다른 파일과
-  분리된, 본인 눈에도 일반 드라이브 화면엔 안 보이는 공간)에 저장됩니다. 두 사람이
-  각자 자기 계정으로 로그인하면 완전히 분리되어 서로의 데이터는 보이지 않습니다.
-* 로그인은 브라우저 세션이 만료되면(대략 몇 시간~며칠) 다시 한 번 눌러줘야 할 수
-  있습니다 — 정상입니다.
+* 즐겨찾기·별점·분류수정은 Firestore의 "본인 문서"(users/내 uid/appData/...)에
+  저장됩니다. Firestore 보안 규칙으로 본인 외에는 읽고 쓸 수 없게 막혀 있어서,
+  두 사람이 각자 자기 계정으로 로그인하면 완전히 분리되어 서로의 데이터는 보이지
+  않습니다.
+* 로그인 화면 자체는 Firebase가 세션을 관리해서 예전보다 오래 유지되지만, 유튜브
+  API를 부르는 데 쓰는 액세스 토큰은 여전히 1시간짜리라 백그라운드에서 자동으로
+  조용히 갱신됩니다 — 보통은 신경 쓸 필요 없습니다.

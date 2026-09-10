@@ -11,26 +11,26 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="좋아요 리스트">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#2a78d6">
+<meta name="theme-color" content="#007aff">
 
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
   :root {
     color-scheme: light;
-    --page: #f9f9f7;
-    --surface: #fcfcfb;
+    --page: #f2f2f7;
+    --surface: #f9f9f7;
     --surface-raised: #ffffff;
     --text-primary: #0b0b0b;
     --text-secondary: #52514e;
-    --text-muted: #898781;
+    --text-muted: #8a8a8e;
     --grid: #e1e0d9;
-    --border: rgba(11,11,11,0.10);
-    --accent: #2a78d6;
-    --accent-soft: #cde2fb;
-    --accent-ink: #0d366b;
+    --border: rgba(11,11,11,0.08);
+    --accent: #007aff;
+    --accent-soft: #e6f1ff;
+    --accent-ink: #0051bb;
     --chip-bg: #eef2fb;
-    --series-1: #2a78d6;
+    --series-1: #007aff;
     --series-2: #eb6834;
     --series-3: #1baf7a;
     --series-4: #eda100;
@@ -41,61 +41,68 @@
     --fav-border: #e0668a;
     --fav-ink: #9c1c46;
     --star-on: #eda100;
-    --danger: #d03b3b;
+    --navbar-bg: rgba(249,249,247,0.78);
+    --tabbar-bg: rgba(249,249,247,0.82);
+    --card-shadow: 0 1px 2px rgba(11,11,11,0.04), 0 10px 24px -18px rgba(11,11,11,0.28);
+    --danger: #ff3b30;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       color-scheme: dark;
-      --page: #0d0d0d; --surface: #1a1a19; --surface-raised: #212120;
-      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
-      --grid: #2c2c2a; --border: rgba(255,255,255,0.10);
-      --accent: #3987e5; --accent-soft: #17314f; --accent-ink: #cde2fb; --chip-bg: #17314f;
-      --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
-      --series-5: #d55181; --series-6: #008300; --series-other: #52514e;
+      --page: #000000; --surface: #1c1c1e; --surface-raised: #232325;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8e8e93;
+      --grid: #2c2c2e; --border: rgba(255,255,255,0.10);
+      --accent: #0a84ff; --accent-soft: #10233c; --accent-ink: #bfe0ff; --chip-bg: #17314f;
+      --series-1: #0a84ff; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+      --series-5: #d55181; --series-6: #30d158; --series-other: #52514e;
       --fav-bg: #4a1f2c; --fav-border: #a34765; --fav-ink: #ffb8cf; --star-on: #c98500;
+      --navbar-bg: rgba(17,17,18,0.72); --tabbar-bg: rgba(17,17,18,0.78);
+      --card-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 24px -18px rgba(0,0,0,0.6);
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --surface-raised: #212120;
-    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
-    --grid: #2c2c2a; --border: rgba(255,255,255,0.10);
-    --accent: #3987e5; --accent-soft: #17314f; --accent-ink: #cde2fb; --chip-bg: #17314f;
-    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
-    --series-5: #d55181; --series-6: #008300; --series-other: #52514e;
+    --page: #000000; --surface: #1c1c1e; --surface-raised: #232325;
+    --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #8e8e93;
+    --grid: #2c2c2e; --border: rgba(255,255,255,0.10);
+    --accent: #0a84ff; --accent-soft: #10233c; --accent-ink: #bfe0ff; --chip-bg: #17314f;
+    --series-1: #0a84ff; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500;
+    --series-5: #d55181; --series-6: #30d158; --series-other: #52514e;
     --fav-bg: #4a1f2c; --fav-border: #a34765; --fav-ink: #ffb8cf; --star-on: #c98500;
+    --navbar-bg: rgba(17,17,18,0.72); --tabbar-bg: rgba(17,17,18,0.78);
+    --card-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 10px 24px -18px rgba(0,0,0,0.6);
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
   body {
     margin: 0; background: var(--page); color: var(--text-primary);
-    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
-    font-variant-numeric: tabular-nums; line-height: 1.5;
-    padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", "Malgun Gothic", sans-serif;
+    font-variant-numeric: tabular-nums; line-height: 1.5; overflow: hidden;
   }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px 16px 88px; }
+  button, input, select { font-family: inherit; }
+  [hidden] { display: none !important; }
+  .press { transition: transform 0.15s ease, opacity 0.15s ease; }
+  .press:active { transform: scale(0.96); opacity: 0.85; }
 
-  /* ---- 로그인 화면 ---- */
+  /* ---------- 로그인 화면 ---------- */
   #loginScreen {
     min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center;
-    padding: 24px;
+    padding: 24px; background: var(--page);
   }
   .login-card {
     max-width: 340px; width: 100%; text-align: center;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 18px;
-    padding: 36px 28px; box-shadow: 0 20px 40px -28px rgba(0,0,0,0.35);
+    background: var(--surface-raised); border: 1px solid var(--border); border-radius: 20px;
+    padding: 36px 28px; box-shadow: var(--card-shadow);
   }
-  .login-logo {
-    width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 18px; display: block;
-  }
-  .login-card h1 { font-size: 19px; margin: 0 0 8px; }
+  .login-logo { width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 18px; display: block; }
+  .login-card h1 { font-size: 19px; margin: 0 0 8px; font-weight: 800; }
   .login-card p { font-size: 13px; color: var(--text-secondary); margin: 0 0 24px; line-height: 1.6; }
   .google-btn {
     appearance: none; width: 100%; display: inline-flex; align-items: center; justify-content: center;
-    gap: 10px; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border);
+    gap: 10px; padding: 13px 16px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: 14px;
-    font-weight: 600; cursor: pointer;
+    font-weight: 700; cursor: pointer;
   }
   .google-btn:hover { background: var(--chip-bg); }
   .google-btn svg { width: 18px; height: 18px; flex: none; }
@@ -103,134 +110,216 @@
   .login-status.err { color: var(--danger); }
   .setup-note {
     margin-top: 22px; text-align: left; font-size: 11.5px; color: var(--text-muted);
-    background: var(--chip-bg); border-radius: 8px; padding: 10px 12px; display: none;
+    background: var(--chip-bg); border-radius: 10px; padding: 10px 12px; display: none;
   }
   .setup-note.show { display: block; }
 
-  /* ---- 상단바 ---- */
-  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-  .topbar .who { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .topbar .who img { width: 26px; height: 26px; border-radius: 50%; flex: none; }
-  .topbar .who span { font-size: 12.5px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .icon-btn {
-    appearance: none; border: 1px solid var(--border); background: var(--surface);
-    color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 600;
-    padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap;
-  }
-  .icon-btn:hover { background: var(--chip-bg); }
+  /* ---------- 앱 셸: 상단바 + 콘텐츠(스크롤) + 하단 탭바 ---------- */
+  .app { display: none; flex-direction: column; height: 100vh; height: 100dvh; }
+  .app.show { display: flex; }
 
-  header.top { margin-bottom: 24px; }
-  .top-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 6px; }
-  h1 { font-size: 24px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; text-wrap: balance; }
-  .sub { color: var(--text-secondary); font-size: 13.5px; margin: 0; }
-  .export-btn {
-    flex: none; appearance: none; border: 1px solid var(--border); background: var(--surface);
-    color: var(--text-primary); font: inherit; font-size: 13px; font-weight: 600;
-    padding: 9px 16px; border-radius: 10px; cursor: pointer; white-space: nowrap;
-    display: inline-flex; align-items: center; gap: 6px; margin-top: 2px;
+  .navbar {
+    flex: none; position: relative; z-index: 20;
+    padding: calc(env(safe-area-inset-top) + 10px) 20px 14px;
+    background: var(--navbar-bg); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--border);
   }
-  .export-btn:hover { background: var(--chip-bg); border-color: var(--accent); }
+  .navbar-eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); margin: 0 0 2px; }
+  .large-title { font-size: 30px; font-weight: 800; margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
 
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 20px 0 28px; }
-  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-  .stat .label { font-size: 11.5px; color: var(--text-muted); margin: 0 0 6px; }
-  .stat .value { font-size: 20px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
-  .stat .value .unit { font-size: 12.5px; font-weight: 500; color: var(--text-secondary); margin-left: 2px; }
+  .content { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 18px 20px calc(env(safe-area-inset-bottom) + 40px); }
+  .content::-webkit-scrollbar { width: 10px; }
+  .content::-webkit-scrollbar-track { background: transparent; }
+  .content::-webkit-scrollbar-thumb { background-color: var(--text-muted); background-clip: padding-box; border: 3px solid transparent; border-radius: 20px; opacity: 0.5; }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: screenIn 0.32s cubic-bezier(.22,1,.36,1); }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  .tabbar {
+    flex: none; position: relative; z-index: 20; display: flex;
+    padding: 8px 6px calc(env(safe-area-inset-bottom) + 8px);
+    background: var(--tabbar-bg); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid var(--border);
+  }
+  .tab-item {
+    flex: 1 1 0; appearance: none; border: none; background: transparent; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px 2px;
+    color: var(--text-muted); font: inherit; border-radius: 12px;
+  }
+  .tab-item .ic { font-size: 21px; line-height: 1; filter: grayscale(0.5); opacity: 0.75; transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), opacity 0.2s, filter 0.2s; }
+  .tab-item .lb { font-size: 10.5px; font-weight: 600; }
+  .tab-item.active { color: var(--accent); }
+  .tab-item.active .ic { transform: translateY(-1px) scale(1.12); opacity: 1; filter: none; }
+
+  /* ---------- 통계 카드 ---------- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 4px 0 18px; }
+  .stat { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; box-shadow: var(--card-shadow); }
+  .stat .label { font-size: 11.5px; color: var(--text-muted); margin: 0 0 6px; font-weight: 600; }
+  .stat .value { font-size: 20px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+  .stat .value .unit { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-left: 2px; }
   .stat .hint { font-size: 11.5px; color: var(--text-secondary); margin: 4px 0 0; }
 
-  .tabs { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; }
-  .tab { appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 7px; cursor: pointer; }
-  .tab[aria-selected="true"] { background: var(--accent); color: #fff; }
+  /* ---------- 세그먼트 컨트롤 (iOS 스타일) ---------- */
+  .segmented { position: relative; display: flex; gap: 2px; padding: 3px; background: var(--grid); border-radius: 11px; margin-bottom: 16px; isolation: isolate; }
+  .segmented-thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); background: var(--surface-raised); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.28s cubic-bezier(.22,1,.36,1); z-index: 0; }
+  .tab { position: relative; z-index: 1; flex: 1; appearance: none; border: none; background: transparent; color: var(--text-secondary); font: inherit; font-size: 13px; font-weight: 600; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: color 0.2s; }
+  .tab[aria-selected="true"] { color: var(--text-primary); }
 
-  .admin-row { display: flex; gap: 8px; flex-wrap: wrap; }
-  .admin-toggle {
-    appearance: none; border: 1px solid var(--border); background: var(--surface);
-    color: var(--text-secondary); font: inherit; font-size: 12.5px; font-weight: 600;
-    padding: 9px 14px; border-radius: 10px; cursor: pointer; margin-bottom: 16px;
-  }
-  .admin-toggle.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .admin-toggle:disabled { opacity: 0.6; cursor: default; }
+  .panel { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 16px; padding: 18px 18px 6px; margin-bottom: 20px; box-shadow: var(--card-shadow); }
+  .panel h2 { font-size: 15px; margin: 0 0 4px; font-weight: 700; }
+  .panel .panel-sub { font-size: 12px; color: var(--text-muted); margin: 0 0 16px; }
 
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 16px 8px; margin-bottom: 20px; }
-  .panel h2 { font-size: 15px; margin: 0 0 4px; }
-  .panel .panel-sub { font-size: 12.5px; color: var(--text-muted); margin: 0 0 16px; }
-
-  .bar-row { display: grid; grid-template-columns: minmax(96px, 200px) 1fr 60px; align-items: center; gap: 8px; padding: 8px 4px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; }
+  .bar-row { display: grid; grid-template-columns: minmax(110px, 200px) 1fr 60px; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 9px; cursor: pointer; border: 1px solid transparent; }
   .bar-row:hover { background: var(--chip-bg); }
-  .bar-row.selected { border-color: var(--accent); background: var(--chip-bg); }
+  .bar-row.selected { border-color: var(--accent); background: var(--accent-soft); }
   .bar-row .name { display: flex; align-items: center; gap: 2px; min-width: 0; font-size: 13px; font-weight: 600; }
   .bar-row .name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 20px; }
   .bar-row.selected .name { color: var(--accent-ink); }
-  .bar-track { position: relative; height: 20px; background: var(--grid); border-radius: 4px; overflow: hidden; }
-  .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 4px; transition: width 0.35s ease; }
+  .bar-track { position: relative; height: 18px; background: var(--grid); border-radius: 5px; overflow: hidden; }
+  .bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 5px; transition: width 0.45s cubic-bezier(.22,1,.36,1); }
   .bar-row:not(.top) .bar-fill { opacity: 0.72; }
   .bar-row.selected .bar-fill { opacity: 1; }
   .bar-count { font-size: 13px; font-weight: 700; text-align: right; }
-  .bar-count .pct { display: block; font-size: 11px; font-weight: 500; color: var(--text-muted); }
-  .top-badge { flex: none; display: inline-block; font-size: 10px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 4px; padding: 1px 5px; }
-  .topic-del, .topic-edit {
-    flex: none; appearance: none; border: none; background: transparent; color: var(--text-muted);
-    font-size: 15px; line-height: 1; cursor: pointer; padding: 6px 7px; border-radius: 4px;
-  }
+  .bar-count .pct { display: block; font-size: 10.5px; font-weight: 500; color: var(--text-muted); }
+  .top-badge { flex: none; display: inline-block; font-size: 9.5px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 4px; padding: 1px 5px; }
+  .topic-del, .topic-edit { flex: none; appearance: none; border: none; background: transparent; color: var(--text-muted); font-size: 12px; line-height: 1; cursor: pointer; padding: 3px 5px; border-radius: 4px; }
   .topic-del:hover { color: #fff; background: var(--danger); }
   .topic-edit:hover { color: #fff; background: var(--accent); }
 
   .comp-wrap { margin-bottom: 20px; }
-  .comp-label { font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
-  .comp-bar { display: flex; gap: 2px; height: 26px; border-radius: 7px; overflow: hidden; margin: 0 0 12px; background: var(--grid); }
-  .comp-seg { height: 100%; min-width: 3px; }
-  .comp-legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0; padding: 0; list-style: none; }
-  .comp-legend li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
-  .comp-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .comp-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 8px; }
+  .comp-bar { display: flex; gap: 2px; height: 24px; border-radius: 8px; overflow: hidden; margin: 0 0 12px; background: var(--grid); }
+  .comp-seg { height: 100%; min-width: 3px; transition: width 0.4s ease; }
+  .comp-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 0; padding: 0; list-style: none; }
+  .comp-legend li { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); }
+  .comp-swatch { width: 9px; height: 9px; border-radius: 3px; flex: none; }
   .comp-legend b { color: var(--text-primary); font-weight: 700; }
 
-  .listbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 4px 0 14px; }
-  .search { flex: 1 1 220px; padding: 11px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: 15px; }
-  .search:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-  select.sortsel { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: 14px; }
-  .clear-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 20px; padding: 8px 12px; cursor: pointer; }
-  .fav-filter { appearance: none; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-secondary); font: inherit; font-size: 12.5px; font-weight: 600; padding: 10px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .section-hint { font-size: 12px; color: var(--text-muted); margin: 0 0 12px; }
+
+  /* ---------- 가로 스크롤 칩 ---------- */
+  .chip-scroll { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 10px; margin: 0 -2px 4px; scrollbar-width: none; }
+  .chip-scroll::-webkit-scrollbar { display: none; }
+  .chip-pill { flex: none; appearance: none; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 700; padding: 7px 13px; border-radius: 20px; cursor: pointer; white-space: nowrap; }
+  .chip-pill .chip-count { color: var(--text-muted); font-weight: 600; margin-left: 3px; }
+  .chip-pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip-pill.active .chip-count { color: rgba(255,255,255,0.8); }
+
+  /* ---------- 검색 바 (iOS 스타일) ---------- */
+  .search-bar { position: relative; margin: 2px 0 10px; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 14px; opacity: 0.55; pointer-events: none; }
+  .search { width: 100%; padding: 10px 12px 10px 34px; border-radius: 12px; border: none; background: var(--grid); color: var(--text-primary); font: inherit; font-size: 14.5px; }
+  .search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .search::placeholder { color: var(--text-muted); }
+
+  .listbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+  select.sortsel { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-primary); font: inherit; font-size: 12.5px; }
+  .clear-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border: none; border-radius: 20px; padding: 7px 12px; cursor: pointer; }
+  .fav-filter { appearance: none; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text-secondary); font: inherit; font-size: 12px; font-weight: 700; padding: 8px 12px; border-radius: 20px; cursor: pointer; white-space: nowrap; }
   .fav-filter.active { background: var(--fav-bg); border-color: var(--fav-border); color: var(--fav-ink); }
-  .result-count { font-size: 12.5px; color: var(--text-muted); margin: 0 0 10px; }
+  .result-count { font-size: 12px; color: var(--text-muted); margin: 0 0 10px; font-weight: 600; }
 
-  .vid-list { display: flex; flex-direction: column; gap: 1px; background: var(--grid); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
-  .vid { display: grid; grid-template-columns: 96px 1fr auto; gap: 4px 12px; align-items: center; background: var(--surface-raised); padding: 10px 12px; text-decoration: none; color: inherit; cursor: pointer; }
-  .vid:hover { background: var(--chip-bg); }
-  .vid-thumb { grid-column: 1; grid-row: 1 / -1; width: 96px; height: 54px; object-fit: cover; border-radius: 8px; background: var(--grid); display: block; }
-  .vid .title { grid-column: 2; font-size: 13.5px; font-weight: 600; line-height: 1.4; }
-  .pref-row { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
-  .fav-btn, .star-btn { appearance: none; border: none; background: transparent; padding: 8px; margin: -8px; cursor: pointer; font-size: 17px; line-height: 1; color: var(--text-muted); }
-  .fav-btn.on { color: #e0668a; }
+  /* ---------- 영상 카드 목록 ---------- */
+  .vid-list { display: flex; flex-direction: column; gap: 10px; }
+  .vid-list.anim { animation: fadeUp 0.22s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+  .vid { display: grid; grid-template-columns: 110px 1fr auto; gap: 4px 12px; align-items: center; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 16px; padding: 10px 12px; text-decoration: none; color: inherit; cursor: pointer; box-shadow: var(--card-shadow); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .vid:active { transform: scale(0.985); }
+  .vid-thumb { grid-column: 1; grid-row: 1 / -1; width: 110px; height: 62px; object-fit: cover; border-radius: 10px; background: var(--grid); display: block; }
+  .vid .title { grid-column: 2; font-size: 13.5px; font-weight: 700; line-height: 1.4; }
+  .pref-row { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+  .fav-btn, .star-btn { appearance: none; border: none; background: transparent; padding: 6px; margin: -6px; cursor: pointer; font-size: 15px; line-height: 1; color: var(--text-muted); }
+  .fav-btn.on { color: #ff375f; }
   .star-btn.on { color: var(--star-on); }
-  .stars { display: inline-flex; }
-  .vid .meta { grid-column: 2; font-size: 12px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
-  .vid .meta .chip { background: var(--chip-bg); color: var(--text-secondary); border-radius: 4px; padding: 1px 6px; }
-  .vid .metrics { grid-column: 3; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 8px; text-align: right; font-size: 11.5px; color: var(--text-muted); white-space: nowrap; }
-  .vid .metrics .views b { display: block; font-size: 13px; color: var(--text-primary); font-weight: 700; }
-  .link-btn { appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 11px; padding: 6px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
-  .link-btn:hover { background: var(--chip-bg); }
+  .stars { display: inline-flex; gap: 1px; }
+  .vid .meta { grid-column: 2; font-size: 11.5px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+  .vid .meta .chip { background: var(--chip-bg); color: var(--text-secondary); border-radius: 5px; padding: 1px 6px; font-weight: 600; }
+  .vid .metrics { grid-column: 3; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 6px; text-align: right; font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+  .vid .metrics .views b { display: block; font-size: 13px; color: var(--text-primary); font-weight: 800; }
+  .link-btn, .analyze-view-btn { appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--text-secondary); font: inherit; font-size: 10.5px; padding: 4px 9px; border-radius: 20px; cursor: pointer; white-space: nowrap; }
   .link-btn.copied { border-color: var(--fav-border); color: var(--fav-ink); }
+  .analyze-badge { font-size: 10.5px; padding: 4px 9px; border-radius: 20px; white-space: nowrap; font-weight: 700; background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--accent-soft); }
+  .analyze-view-btn { color: var(--accent-ink); border-color: var(--accent-soft); font-weight: 600; }
   .vid .edit-row { grid-column: 2; display: flex; align-items: center; gap: 8px; margin-top: 6px; cursor: default; }
-  .vid .edit-row label { font-size: 11.5px; color: var(--text-muted); font-weight: 600; }
-  .edit-select { font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); max-width: 220px; }
-
-  .empty { padding: 40px 0; text-align: center; color: var(--text-muted); font-size: 13.5px; }
-  footer.note { margin-top: 28px; font-size: 11.5px; color: var(--text-muted); }
-
-  /* ---- 로딩 오버레이 ---- */
-  #loadingOverlay {
-    position: fixed; inset: 0; background: rgba(13,13,13,0.55); backdrop-filter: blur(2px);
-    display: none; align-items: center; justify-content: center; z-index: 50;
+  .vid .edit-row label { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+  @media (max-width: 480px) {
+    .vid { grid-template-columns: 78px 1fr auto; gap: 4px 10px; }
+    .vid-thumb { width: 78px; height: 44px; }
   }
+  .edit-select { font: inherit; font-size: 12px; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text-primary); max-width: 220px; }
+
+  .empty { padding: 50px 0; text-align: center; color: var(--text-muted); font-size: 13.5px; line-height: 1.7; }
+
+  /* ---------- 설정 화면 ---------- */
+  .settings-group { background: var(--surface-raised); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 16px; box-shadow: var(--card-shadow); }
+  .profile-row { display: flex; align-items: center; gap: 12px; padding: 16px; }
+  .profile-avatar { width: 46px; height: 46px; border-radius: 50%; flex: none; background: var(--grid); }
+  .profile-info { min-width: 0; }
+  .profile-name { margin: 0; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-email { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .settings-row { display: block; width: 100%; text-align: left; appearance: none; border: none; border-bottom: 1px solid var(--border); background: transparent; color: var(--accent); font: inherit; font-size: 14.5px; font-weight: 600; padding: 14px 16px; cursor: pointer; }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row:disabled { opacity: 0.6; cursor: default; }
+  .settings-row.danger { color: var(--danger); }
+  .settings-row.active { color: var(--danger); }
+  .settings-note { font-size: 12px; color: var(--text-muted); line-height: 1.7; padding: 4px 2px; }
+  .admin-banner {
+    font-size: 12.5px; color: var(--accent-ink); background: var(--accent-soft);
+    border-radius: 12px; padding: 0 14px; margin: 0 0 14px;
+    max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  }
+  .admin-banner.show { max-height: 160px; opacity: 1; padding: 10px 14px; }
+
+  /* ---------- 분석 내용 팝업 ---------- */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.42);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    animation: modalFade 0.2s ease;
+  }
+  @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+  .modal-sheet {
+    width: 100%; max-width: 560px; max-height: min(720px, 86vh); display: flex; flex-direction: column;
+    background: var(--surface-raised); border-radius: 20px; box-shadow: 0 24px 60px -20px rgba(0,0,0,0.5);
+    overflow: hidden; animation: modalIn 0.25s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.94) translateY(8px); } to { opacity: 1; transform: none; } }
+  .modal-header { flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 18px 18px 12px; border-bottom: 1px solid var(--border); }
+  .modal-header h2 { margin: 0; font-size: 16px; font-weight: 800; line-height: 1.4; letter-spacing: -0.01em; }
+  .modal-close { flex: none; appearance: none; border: none; background: var(--chip-bg); color: var(--text-secondary); width: 28px; height: 28px; border-radius: 50%; font-size: 14px; cursor: pointer; line-height: 1; }
+  .modal-close:hover { background: var(--grid); }
+  .modal-meta { flex: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 18px 0; }
+  .modal-meta .chip { background: var(--chip-bg); color: var(--text-secondary); border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 700; }
+  .modal-meta .chip.status-draft { background: var(--accent-soft); color: var(--accent-ink); }
+  .modal-body { flex: 1 1 auto; overflow-y: auto; padding: 14px 20px 24px; font-size: 13.5px; line-height: 1.75; color: var(--text-primary); -webkit-user-select: text; user-select: text; cursor: text; }
+  .modal-copy-btn { flex: none; appearance: none; border: 1px solid var(--border); background: var(--chip-bg); color: var(--text-secondary); font: inherit; font-size: 11.5px; font-weight: 700; padding: 6px 12px; border-radius: 20px; cursor: pointer; white-space: nowrap; }
+  .modal-copy-btn:hover { background: var(--grid); }
+  .modal-copy-btn.copied { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+  .modal-body h1, .modal-body h2, .modal-body h3 { font-weight: 800; letter-spacing: -0.01em; margin: 18px 0 8px; }
+  .modal-body h1 { font-size: 17px; }
+  .modal-body h2 { font-size: 15px; }
+  .modal-body h3 { font-size: 13.5px; color: var(--text-secondary); }
+  .modal-body p { margin: 0 0 10px; }
+  .modal-body ul, .modal-body ol { margin: 0 0 12px; padding-left: 20px; }
+  .modal-body li { margin: 0 0 5px; }
+  .modal-body blockquote { margin: 0 0 14px; padding: 8px 12px; border-left: 3px solid var(--accent); background: var(--chip-bg); border-radius: 0 8px 8px 0; font-size: 12px; color: var(--text-secondary); }
+  .modal-body code { background: var(--chip-bg); border-radius: 4px; padding: 1px 5px; font-size: 12.5px; }
+  .modal-body .md-wikilink { color: var(--accent-ink); font-weight: 600; }
+  .modal-body table.md-table { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: 12.5px; }
+  .modal-body table.md-table th, .modal-body table.md-table td { border: 1px solid var(--border); padding: 5px 8px; text-align: left; }
+  .modal-body table.md-table th { background: var(--chip-bg); font-weight: 700; }
+  .modal-loading, .modal-error { padding: 30px 0; text-align: center; color: var(--text-muted); font-size: 13px; }
+  .modal-error { color: var(--danger); }
+
+  /* ---------- 로딩 오버레이 ---------- */
+  #loadingOverlay { position: fixed; inset: 0; background: rgba(13,13,13,0.55); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 50; }
   #loadingOverlay.show { display: flex; }
   .loading-card { background: var(--surface-raised); border-radius: 14px; padding: 22px 26px; text-align: center; max-width: 260px; box-shadow: 0 20px 40px -28px rgba(0,0,0,0.5); }
   .spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); margin: 0 auto 12px; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-card p { margin: 0; font-size: 13px; color: var(--text-secondary); }
-
-  #app { display: none; }
-  #app.show { display: block; }
 </style>
 </head>
 <body>
@@ -239,7 +328,7 @@
     <div class="login-card">
       <img class="login-logo" src="icons/icon-192.png" alt="">
       <h1>관심있는 영상 리스트</h1>
-      <p>본인의 구글 계정으로 로그인하면, 유튜브 좋아요 목록을 가져와서 분류해 보여줍니다. 데이터는 본인 구글 드라이브 안에만 저장됩니다.</p>
+      <p>본인의 구글 계정으로 로그인하면, 유튜브 좋아요 목록을 가져와서 분류해 보여줍니다. 즐겨찾기·별점·분류수정은 본인 계정에만 안전하게 저장됩니다.</p>
       <button class="google-btn" id="signInBtn">
         <svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.9 32.7 29.4 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34 5.1 29.3 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.4 19 12 24 12c3.1 0 5.8 1.1 8 3l6-6C34 5.1 29.3 3 24 3 16.1 3 9.3 7.6 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 36.4 26.7 37 24 37c-5.3 0-9.8-3.3-11.4-8l-6.6 5.1C9.2 40.4 16 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1 3-3.2 5.5-6.1 7l6.2 5.2C38.6 37.9 45 32 45 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
         Google 계정으로 로그인
@@ -251,69 +340,124 @@
     </div>
   </div>
 
-  <div id="app">
-    <div class="wrap">
-      <div class="topbar">
-        <div class="who">
-          <img id="whoAvatar" src="" alt="" hidden>
-          <span id="whoName"></span>
-        </div>
-        <button class="icon-btn" id="signOutBtn">로그아웃</button>
-      </div>
+  <div class="app" id="app">
+    <header class="navbar">
+      <p class="navbar-eyebrow">YouTube 좋아요 분석</p>
+      <h1 class="large-title" id="screenTitle">홈</h1>
+    </header>
 
-      <header class="top">
-        <div class="top-row">
-          <div>
-            <p class="eyebrow">YouTube 좋아요 분석</p>
-            <h1>관심있는 영상 리스트</h1>
+    <main class="content" id="content">
+      <section class="screen active" data-screen="home">
+        <div class="stats" id="stats"></div>
+
+        <div class="segmented" role="tablist" aria-label="분류 기준">
+          <span class="segmented-thumb" id="segThumb"></span>
+          <button class="tab" role="tab" id="tab-official" aria-selected="true">공식 카테고리</button>
+          <button class="tab" role="tab" id="tab-topic" aria-selected="false">관심 주제</button>
+        </div>
+
+        <section class="panel">
+          <h2 id="panelTitle">공식 카테고리별 분포</h2>
+          <p class="panel-sub" id="panelSub">YouTube가 영상마다 매긴 공식 분류 기준입니다.</p>
+          <div class="comp-wrap">
+            <p class="comp-label">전체 구성 비율</p>
+            <div class="comp-bar" id="compBar"></div>
+            <ul class="comp-legend" id="compLegend"></ul>
           </div>
-          <button class="export-btn" id="exportBtn" title="지금 화면에 보이는 목록 그대로 저장됩니다">⬇ CSV로 저장</button>
-        </div>
-        <p class="sub">좋아요 표시한 영상 <strong id="totalCount">-</strong>개를 두 가지 기준으로 분류했습니다. 막대를 탭하면 해당 분류의 영상만 볼 수 있어요.</p>
-      </header>
-
-      <div class="stats" id="stats"></div>
-
-      <div class="tabs" role="tablist" aria-label="분류 기준">
-        <button class="tab" role="tab" id="tab-official" aria-selected="true">공식 카테고리</button>
-        <button class="tab" role="tab" id="tab-topic" aria-selected="false">관심 주제</button>
-      </div>
-
-      <div class="admin-row">
-        <button class="admin-toggle" id="refreshBtn">🔄 새 데이터 받기</button>
-      </div>
-
-      <section class="panel">
-        <h2 id="panelTitle">공식 카테고리별 분포</h2>
-        <p class="panel-sub" id="panelSub">YouTube가 영상마다 매긴 공식 분류 기준입니다.</p>
-        <div class="comp-wrap">
-          <p class="comp-label">전체 구성 비율</p>
-          <div class="comp-bar" id="compBar"></div>
-          <ul class="comp-legend" id="compLegend"></ul>
-        </div>
-        <div id="barChart"></div>
+          <div id="barChart"></div>
+        </section>
       </section>
 
-      <section class="panel">
-        <h2>영상 목록</h2>
-        <p class="panel-sub">제목·채널로 검색하거나 정렬해서 둘러보세요. 제목을 탭하면 새 탭에서 영상이 열립니다.</p>
-        <div class="listbar">
+      <section class="screen" data-screen="list">
+        <p class="section-hint">전체 영상을 검색·정렬·카테고리로 훑어보는 화면입니다.</p>
+        <div class="chip-scroll" id="categoryChips"></div>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
           <input class="search" id="searchInput" type="text" placeholder="제목 또는 채널명 검색" />
+        </div>
+        <div class="listbar">
           <select class="sortsel" id="sortSelect">
             <option value="date">최신순</option>
             <option value="views">조회수 높은순</option>
             <option value="likes">영상 좋아요 많은순</option>
           </select>
-          <button class="fav-filter" id="favFilterBtn">🤍 즐겨찾기만 보기</button>
-          <button class="clear-chip" id="clearChip" hidden>✕ <span id="clearLabel"></span></button>
+          <button class="clear-chip press" id="clearChip" hidden>✕ <span id="clearLabel"></span></button>
         </div>
         <p class="result-count" id="resultCount"></p>
         <div class="vid-list" id="vidList"></div>
       </section>
 
-      <footer class="note">
-        분류 방식: 공식 카테고리는 YouTube API가 제공하는 값, 관심 주제는 제목 키워드 기반 추정 분류입니다 (참고용, 100% 정확하지 않을 수 있음). 즐겨찾기·별점·분류수정은 본인 구글 드라이브(앱 전용 저장공간)에 저장됩니다.
-      </footer>
+      <section class="screen" data-screen="fav">
+        <p class="section-hint">즐겨찾기한 영상만 모아서 검색·정렬·카테고리로 훑어보는 화면입니다.</p>
+        <div class="chip-scroll" id="favCategoryChips"></div>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input class="search" id="favSearchInput" type="text" placeholder="즐겨찾기에서 검색" />
+        </div>
+        <div class="listbar">
+          <select class="sortsel" id="favSortSelect">
+            <option value="date">최신순</option>
+            <option value="views">조회수 높은순</option>
+            <option value="likes">영상 좋아요 많은순</option>
+            <option value="rating">별점 높은순</option>
+          </select>
+          <button class="fav-filter press" id="favFavFilterBtn">❤️ 즐겨찾기만 보기</button>
+          <button class="fav-filter press" id="favAnalyzedFilterBtn">📑 분석완료만 보기</button>
+          <button class="clear-chip press" id="favClearChip" hidden>✕ <span id="favClearLabel"></span></button>
+        </div>
+        <p class="result-count" id="favResultCount"></p>
+        <div class="vid-list" id="favVidList"></div>
+      </section>
+
+      <section class="screen" data-screen="settings">
+        <div class="settings-group">
+          <div class="profile-row">
+            <img id="whoAvatar" class="profile-avatar" src="" alt="" hidden>
+            <div class="profile-info">
+              <p class="profile-name" id="whoName">-</p>
+              <p class="profile-email" id="whoEmail"></p>
+            </div>
+          </div>
+        </div>
+        <div class="settings-group">
+          <button class="settings-row press" id="adminToggleBtn">🔓 관리자 모드</button>
+          <button class="settings-row press" id="refreshBtn">🔄 새 데이터 받기</button>
+          <button class="settings-row press" id="exportBtn">⬇️ 지금 목록 CSV로 저장</button>
+          <label class="settings-row press" for="overridesImportInput">📥 로컬 즐겨찾기·분류 가져오기</label>
+          <input type="file" id="overridesImportInput" accept="application/json" hidden>
+          <label class="settings-row press" for="analysisImportInput">📥 로컬 분석 자료 가져오기</label>
+          <input type="file" id="analysisImportInput" accept="application/json" hidden>
+          <button class="settings-row press danger" id="signOutBtn">🚪 로그아웃</button>
+        </div>
+        <p class="admin-banner" id="adminBanner">관리자 모드가 켜져 있습니다 — 카테고리 막대 옆 ✎ ✕ 로 이름을 바꾸거나 삭제하고, 영상마다 분류를 직접 고르거나 새 카테고리를 만들 수 있어요.</p>
+        <p class="settings-note">
+          분류 방식: 공식 카테고리는 YouTube API가 제공하는 값, 관심 주제는 제목 키워드 기반 추정 분류입니다 (참고용, 100% 정확하지 않을 수 있음).<br /><br />
+          즐겨찾기·별점·분류수정은 본인 계정으로만 접근 가능한 저장공간에 보관되어, 다른 사람이 로그인해도 서로의 데이터는 보이지 않습니다.<br /><br />
+          "로컬 즐겨찾기·분류 가져오기"는 PC의 "관심있는 영상 리스트" 프로그램에서 고친 즐겨찾기·별점·분류를 이 앱에도 반영하도록, <code>01_작업/export_overrides_for_web.py</code>로 내보낸 <code>overrides_export.json</code> 파일을 업로드하는 기능입니다(현재 웹앱의 내용을 통째로 덮어씁니다).<br /><br />
+          "로컬 분석 자료 가져오기"는 PC의 "관심있는 영상 리스트" 프로그램에서 분석한 영상을 이 앱에서도 볼 수 있게, <code>01_작업/export_analysis_for_web.py</code>로 내보낸 <code>analysis_export.json</code> 파일을 업로드하는 기능입니다. 이 앱에서 새로 분석을 실행하는 기능은 없습니다.
+        </p>
+      </section>
+    </main>
+
+    <nav class="tabbar">
+      <button class="tab-item press active" id="tabHomeBtn" data-screen="home" data-title="홈"><span class="ic">🏠</span><span class="lb">홈</span></button>
+      <button class="tab-item press" id="tabListBtn" data-screen="list" data-title="영상 목록"><span class="ic">📋</span><span class="lb">목록</span></button>
+      <button class="tab-item press" id="tabFavBtn" data-screen="fav" data-title="즐겨찾기"><span class="ic">⭐</span><span class="lb">즐겨찾기</span></button>
+      <button class="tab-item press" id="tabSettingsBtn" data-screen="settings" data-title="설정"><span class="ic">⚙️</span><span class="lb">설정</span></button>
+    </nav>
+  </div>
+
+  <div class="modal-backdrop" id="analysisModalBackdrop" hidden>
+    <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="analysisModalTitle">
+      <div class="modal-header">
+        <h2 id="analysisModalTitle">분석 내용</h2>
+        <div style="display:flex; gap:8px; flex:none;">
+          <button class="modal-copy-btn press" id="analysisModalCopy">📋 복사</button>
+          <button class="modal-close press" id="analysisModalClose" title="닫기">✕</button>
+        </div>
+      </div>
+      <div class="modal-meta" id="analysisModalMeta"></div>
+      <div class="modal-body" id="analysisModalBody"></div>
     </div>
   </div>
 
@@ -324,6 +468,6 @@
     </div>
   </div>
 
-<script src="app.js"></script>
+<script type="module" src="app.js?v=20260911b"></script>
 </body>
 </html>

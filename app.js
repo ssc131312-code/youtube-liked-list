@@ -1,5 +1,11 @@
 'use strict';
 
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js';
+import {
+  getAuth, GoogleAuthProvider, signInWithCredential, signOut as fbSignOut,
+} from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+
 /* =========================================================================
  * 설정 — 구글 클라우드 콘솔에서 만든 "웹 애플리케이션" OAuth 클라이언트 ID로 교체하세요.
  * 자세한 절차는 같은 폴더의 설정방법.txt 참고.
@@ -7,14 +13,24 @@
 const CLIENT_ID = '876374595338-b2ha6mbvt10frs6jobe2r171q5nnnf1a.apps.googleusercontent.com';
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
-  'https://www.googleapis.com/auth/drive.appdata',
   'https://www.googleapis.com/auth/userinfo.profile',
   'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 
+const firebaseApp = initializeApp({
+  apiKey: 'AIzaSyCGvfXuof3E6ak9-qPpOXCmoZgnSStMf1E',
+  authDomain: 'liked-export-505817.firebaseapp.com',
+  projectId: 'youtube-liked-export-505817',
+  storageBucket: 'youtube-liked-export-505817.firebasestorage.app',
+  messagingSenderId: '876374595338',
+  appId: '1:876374595338:web:2764d03c556764a3aa4cf3',
+});
+const auth = getAuth(firebaseApp);
+const db = getFirestore(firebaseApp);
+
 const PROTECTED = '미분류';
-const DRIVE_FILES = { cache: 'videos_cache.json', overrides: 'overrides.json' };
-const COLS = { id: 0, title: 1, channel: 2, date: 3, views: 4, likes: 5, off: 6, topic: 7, fav: 8, rating: 9 };
+const DOC_NAMES = { cache: 'cache', overrides: 'overrides', analysis: 'analysis' };
+const COLS = { id: 0, title: 1, channel: 2, date: 3, views: 4, likes: 5, off: 6, topic: 7, fav: 8, rating: 9, analyzed: 10 };
 
 function isConfigured() { return CLIENT_ID && !CLIENT_ID.startsWith('YOUR_CLIENT_ID'); }
 
@@ -79,12 +95,17 @@ const STATE = {
   rawVideos: [],
   categoryNames: {},
   overrides: overridesDefault(),
+  analysis: {}, // video_id -> { date, category, content } — PC에서 분석한 결과를 읽기 전용으로 가져온 것
   payload: { builtAt: '', officialCats: [], topics: [], customOfficial: [], customTopics: [], rows: [] },
   facet: 'off',
   selectedIndex: null,
   sortMode: 'date',
   query: '',
+  favSortMode: 'date',
+  favQuery: '',
   favOnly: false,
+  favAnalyzedOnly: false,
+  adminMode: false,
 };
 
 const FACET_KEYS = {
@@ -95,7 +116,7 @@ const FACET_KEYS = {
 /* 01_작업/classify_liked_videos.py(override 적용) + build_1_데이터생성.py(집계) 를
    합쳐서 클라이언트에서 그대로 재현한다 — 원본 영상 목록 + 카테고리 이름표 + 수동수정을
    조합해서 화면에 쓸 payload를 매번 새로 만든다. */
-function buildPayload(rawVideos, categoryNames, ov) {
+function buildPayload(rawVideos, categoryNames, ov, analysis) {
   const rows = rawVideos.map(v => ({
     video_id: v.video_id,
     title: v.title,
@@ -144,6 +165,7 @@ function buildPayload(rawVideos, categoryNames, ov) {
     r.video_id, r.title, r.channel_title, r.date, r.views, r.likes,
     offIdx[r.category_official], topicIdx[r.topic],
     favorites[r.video_id] ? 1 : 0, ratings[r.video_id] || 0,
+    (analysis && analysis[r.video_id]) ? 1 : 0,
   ]);
 
   return {
@@ -156,7 +178,7 @@ function buildPayload(rawVideos, categoryNames, ov) {
 }
 
 function rebuildPayload() {
-  STATE.payload = buildPayload(STATE.rawVideos, STATE.categoryNames, STATE.overrides);
+  STATE.payload = buildPayload(STATE.rawVideos, STATE.categoryNames, STATE.overrides, STATE.analysis);
 }
 
 /* =========================================================================
@@ -165,8 +187,7 @@ function rebuildPayload() {
  * 이 방식(토큰 클라이언트)은 보안상 액세스 토큰을 1시간 정도만 발급하고
  * 브라우저에 저장해두지 않는다 — 그래서 원래는 새로고침·시간 경과마다
  * 로그인 버튼을 다시 눌러야 한다. 매번 누르지 않아도 되게, 아래 두 가지를
- * 덧붙인다 (진짜 몇 주씩 유지되는 로그인은 서버 없이는 불가능 — 나중에
- * 온라인 서버를 두면 그때 리프레시 토큰 기반으로 제대로 구현할 것):
+ * 덧붙인다:
  *   1) 한 번 로그인한 적이 있으면, 다음에 열 때 자동으로 "조용히" 재로그인
  *      시도한다(구글 브라우저 세션이 살아있으면 클릭 없이 통과됨).
  *   2) 토큰이 만료되기 5분 전에 미리 조용히 갱신해서, 쓰는 도중 "로그인이
@@ -200,7 +221,6 @@ function initGisWhenReady() {
   }
 }
 
-// 예전에 로그인한 적이 있을 때만 시도한다 — 처음 쓰는 사람에게는 그냥 로그인 화면을 보여준다.
 function attemptSilentSignIn() {
   if (localStorage.getItem(AUTOLOGIN_KEY) !== '1') return;
   isSilentAttempt = true;
@@ -210,7 +230,7 @@ function attemptSilentSignIn() {
 
 function scheduleTokenRefresh(expiresInSec) {
   clearTimeout(refreshTimer);
-  const refreshInMs = Math.max(10000, ((expiresInSec || 3600) - 300) * 1000); // 만료 5분 전
+  const refreshInMs = Math.max(10000, ((expiresInSec || 3600) - 300) * 1000);
   refreshTimer = setTimeout(() => {
     if (!accessToken || !tokenClient) return;
     isSilentAttempt = true;
@@ -222,8 +242,6 @@ async function handleTokenResponse(resp) {
   const wasSilent = isSilentAttempt;
   isSilentAttempt = false;
   if (resp.error) {
-    // 조용한 시도(자동 재로그인·사전 토큰 갱신)가 실패한 거면 사용자를 놀라게 하지 않고
-    // 그냥 평범한 로그인 화면을 보여준다 — 명시적으로 버튼을 눌렀을 때만 에러를 알린다.
     if (wasSilent) { setLoginStatus(''); return; }
     setLoginStatus('로그인에 실패했습니다: ' + resp.error, true);
     return;
@@ -231,6 +249,18 @@ async function handleTokenResponse(resp) {
   accessToken = resp.access_token;
   localStorage.setItem(AUTOLOGIN_KEY, '1');
   scheduleTokenRefresh(resp.expires_in);
+
+  // 구글 액세스 토큰으로 Firebase에도 로그인한다 — Firestore 보안 규칙이 요구하는
+  // request.auth.uid는 이 Firebase 로그인에서 나온다 (구글 로그인과 별개 세션).
+  try {
+    const cred = GoogleAuthProvider.credential(null, accessToken);
+    await signInWithCredential(auth, cred);
+  } catch (e) {
+    if (wasSilent) { setLoginStatus(''); return; }
+    setLoginStatus('Firebase 로그인에 실패했습니다: ' + e.message, true);
+    return;
+  }
+
   setLoginStatus('');
   await onSignedIn();
 }
@@ -244,58 +274,24 @@ function handleAuthExpired() {
 }
 
 /* =========================================================================
- * 구글 드라이브 (앱 전용 저장공간 · appDataFolder) — 01_작업/override_store.py 의
- * load()/save() 를 대신한다. 다른 앱·다른 사람 눈에는 보이지 않는 공간이다.
+ * Firestore (사용자별 저장공간 · users/{uid}/appData/{name}) — 01_작업/override_store.py 의
+ * load()/save() 를 대신한다. 보안 규칙(firestore.rules)이 본인 문서만 접근을 허용한다.
  * ========================================================================= */
-async function driveFindFileId(name) {
-  const q = encodeURIComponent(`name='${name}' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name)`;
-  const res = await fetch(url, { headers: authHeaders() });
-  if (res.status === 401) { handleAuthExpired(); throw new Error('로그인이 만료됐습니다.'); }
-  if (!res.ok) throw new Error('드라이브 조회 실패 (' + res.status + ')');
-  const data = await res.json();
-  return data.files && data.files[0] ? data.files[0].id : null;
+function appDataRef(name) {
+  return doc(db, 'users', auth.currentUser.uid, 'appData', name);
 }
 
-async function driveReadJson(name) {
-  const id = await driveFindFileId(name);
-  if (!id) return null;
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`, { headers: authHeaders() });
-  if (res.status === 401) { handleAuthExpired(); throw new Error('로그인이 만료됐습니다.'); }
-  if (!res.ok) throw new Error('드라이브 읽기 실패 (' + res.status + ')');
-  return res.json();
+async function fsReadJson(name) {
+  const snap = await getDoc(appDataRef(name));
+  return snap.exists() ? snap.data().payload : null;
 }
 
-async function driveWriteJson(name, obj) {
-  const id = await driveFindFileId(name);
-  const body = JSON.stringify(obj);
-  if (id) {
-    const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media`, {
-      method: 'PATCH',
-      headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-      body,
-    });
-    if (res.status === 401) { handleAuthExpired(); throw new Error('로그인이 만료됐습니다.'); }
-    if (!res.ok) throw new Error('드라이브 저장 실패 (' + res.status + ')');
-    return res.json();
-  }
-  const metadata = { name, parents: ['appDataFolder'] };
-  const boundary = 'gcbound' + Math.random().toString(16).slice(2);
-  const multipartBody =
-    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
-    `--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--`;
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-    method: 'POST',
-    headers: { ...authHeaders(), 'Content-Type': `multipart/related; boundary=${boundary}` },
-    body: multipartBody,
-  });
-  if (res.status === 401) { handleAuthExpired(); throw new Error('로그인이 만료됐습니다.'); }
-  if (!res.ok) throw new Error('드라이브 생성 실패 (' + res.status + ')');
-  return res.json();
+async function fsWriteJson(name, obj) {
+  await setDoc(appDataRef(name), { payload: obj, updatedAt: new Date().toISOString() });
 }
 
 async function persistOverrides() {
-  await driveWriteJson(DRIVE_FILES.overrides, STATE.overrides);
+  await fsWriteJson(DOC_NAMES.overrides, STATE.overrides);
 }
 
 /* =========================================================================
@@ -419,6 +415,7 @@ async function onSignedIn() {
   try {
     const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: authHeaders() }).then(r => r.json());
     document.getElementById('whoName').textContent = info.name || info.email || '로그인됨';
+    document.getElementById('whoEmail').textContent = info.email || '';
     if (info.picture) {
       const av = document.getElementById('whoAvatar');
       av.src = info.picture;
@@ -428,8 +425,9 @@ async function onSignedIn() {
 
   showLoading('저장된 데이터를 불러오는 중...');
   try {
-    STATE.overrides = (await driveReadJson(DRIVE_FILES.overrides)) || overridesDefault();
-    const cache = await driveReadJson(DRIVE_FILES.cache);
+    STATE.overrides = (await fsReadJson(DOC_NAMES.overrides)) || overridesDefault();
+    STATE.analysis = (await fsReadJson(DOC_NAMES.analysis)) || {};
+    const cache = await fsReadJson(DOC_NAMES.cache);
     if (cache && cache.videos && cache.videos.length) {
       STATE.rawVideos = cache.videos;
       STATE.categoryNames = cache.categoryNames || {};
@@ -438,10 +436,14 @@ async function onSignedIn() {
       STATE.categoryNames = {};
     }
     rebuildPayload();
-    renderAll();
+    renderStats();
+    setFacet('off');
+    renderCategoryChips();
+    renderList();
+    renderFavList();
     hideLoading();
     if (!STATE.rawVideos.length) {
-      alert('아직 받아온 데이터가 없습니다. "새 데이터 받기"를 눌러주세요.');
+      alert('아직 받아온 데이터가 없습니다. 설정 탭에서 "새 데이터 받기"를 눌러주세요.');
     }
   } catch (e) {
     hideLoading();
@@ -451,7 +453,7 @@ async function onSignedIn() {
 }
 
 /* =========================================================================
- * 화면 렌더링 (01_작업/dashboard_template.html 의 렌더 로직을 이식)
+ * 화면 렌더링 (01_작업/dashboard_template.html 의 iOS 앱 스타일 렌더 로직을 이식)
  * ========================================================================= */
 function fmt(n) { return n.toLocaleString('ko-KR'); }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -469,7 +471,6 @@ function counts(f) {
 
 function renderStats() {
   const total = STATE.payload.rows.length;
-  document.getElementById('totalCount').textContent = fmt(total);
   const offRanked = counts('off');
   const topicRanked = counts('topic');
   const offTop = offRanked[0] || { name: '-', count: 0 };
@@ -498,7 +499,7 @@ function renderChart() {
     const width = Math.max(2, item.count / (max || 1) * 100);
     const selected = STATE.selectedIndex === item.i;
     const isEtc = item.name === PROTECTED;
-    const manageBtns = !isEtc ? `
+    const manageBtns = (STATE.adminMode && !isEtc) ? `
       <button class="topic-edit no-nav" data-name="${escapeHtml(item.name)}" title="이름 바꾸기">✎</button>
       <button class="topic-del no-nav" data-name="${escapeHtml(item.name)}" title="카테고리 삭제(미분류로 합치기)">✕</button>
     ` : '';
@@ -517,9 +518,12 @@ function renderChart() {
     el.addEventListener('click', e => {
       if (e.target.closest('.no-nav')) return;
       const idx = Number(el.dataset.idx);
-      STATE.selectedIndex = STATE.selectedIndex === idx ? null : idx;
+      const wasSelected = STATE.selectedIndex === idx;
+      STATE.selectedIndex = wasSelected ? null : idx;
       renderChart();
+      renderCategoryChips();
       renderList();
+      if (!wasSelected) activateTab(document.getElementById('tabListBtn'));
     });
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } });
   });
@@ -532,6 +536,31 @@ function renderChart() {
     if (newName === PROTECTED) { alert(`"${PROTECTED}"는 시스템에서 특별하게 쓰는 이름이라 사용할 수 없어요.`); return; }
     renameCategory(STATE.facet, oldName, newName);
   }));
+}
+
+// "목록"·"즐겨찾기" 두 화면이 같은 선택 상태(STATE.selectedIndex)를 공유한다 — 한쪽에서
+// 카테고리를 고르면 다른 쪽에도 그대로 반영된다.
+function renderCategoryChips() {
+  const ranked = counts(STATE.facet).filter(item => item.name !== PROTECTED).slice(0, 10);
+  const chipsHtml = [`<button class="chip-pill press ${STATE.selectedIndex === null ? 'active' : ''}" data-idx="__all__">전체</button>`]
+    .concat(ranked.map(item => `
+      <button class="chip-pill press ${STATE.selectedIndex === item.i ? 'active' : ''}" data-idx="${item.i}">${escapeHtml(item.name)}<span class="chip-count">${item.count}</span></button>
+    `)).join('');
+  ['categoryChips', 'favCategoryChips'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = chipsHtml;
+  });
+}
+
+function handleCategoryChipClick(e) {
+  const btn = e.target.closest('.chip-pill');
+  if (!btn) return;
+  const idx = btn.dataset.idx;
+  STATE.selectedIndex = idx === '__all__' ? null : Number(idx);
+  renderCategoryChips();
+  renderChart();
+  renderList();
+  renderFavList();
 }
 
 function renderComposition() {
@@ -557,7 +586,6 @@ function getVisibleRows() {
   const col = colIndex(STATE.facet);
   let rows = STATE.payload.rows;
   if (STATE.selectedIndex !== null) rows = rows.filter(r => r[col] === STATE.selectedIndex);
-  if (STATE.favOnly) rows = rows.filter(r => r[COLS.fav] === 1);
   if (STATE.query.trim()) {
     const q = STATE.query.trim().toLowerCase();
     rows = rows.filter(r => r[COLS.title].toLowerCase().includes(q) || r[COLS.channel].toLowerCase().includes(q));
@@ -568,6 +596,80 @@ function getVisibleRows() {
     return a[COLS.date] < b[COLS.date] ? 1 : -1;
   });
   return rows;
+}
+
+function getFavoriteRows() {
+  const col = colIndex(STATE.facet);
+  let rows = STATE.payload.rows;
+  if (STATE.favOnly) rows = rows.filter(r => r[COLS.fav] === 1);
+  if (STATE.selectedIndex !== null) rows = rows.filter(r => r[col] === STATE.selectedIndex);
+  if (STATE.favAnalyzedOnly) rows = rows.filter(r => r[COLS.analyzed] === 1);
+  if (STATE.favQuery.trim()) {
+    const q = STATE.favQuery.trim().toLowerCase();
+    rows = rows.filter(r => r[COLS.title].toLowerCase().includes(q) || r[COLS.channel].toLowerCase().includes(q));
+  }
+  rows = rows.slice().sort((a, b) => {
+    if (STATE.favSortMode === 'views') return b[COLS.views] - a[COLS.views];
+    if (STATE.favSortMode === 'likes') return b[COLS.likes] - a[COLS.likes];
+    if (STATE.favSortMode === 'rating') return (b[COLS.rating] || 0) - (a[COLS.rating] || 0);
+    return a[COLS.date] < b[COLS.date] ? 1 : -1;
+  });
+  return rows;
+}
+
+// "목록"·"즐겨찾기" 두 화면이 공통으로 쓰는 영상 카드 하나의 HTML.
+function videoCardHtml(r) {
+  const showEdit = STATE.adminMode;
+  const editLabels = labelsFor(STATE.facet);
+  const editCol = colIndex(STATE.facet);
+  const editFacetName = STATE.facet === 'off' ? '공식 카테고리' : '관심 주제';
+  const videoUrl = `https://www.youtube.com/watch?v=${r[COLS.id]}`;
+  const thumbUrl = `https://i.ytimg.com/vi/${r[COLS.id]}/mqdefault.jpg`;
+  const editRow = showEdit ? `
+    <div class="edit-row no-nav">
+      <label>${editFacetName}</label>
+      <select class="edit-select no-nav" data-video="${r[COLS.id]}">
+        ${editLabels.map((t, i) => `<option value="${i}" ${i === r[editCol] ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}
+        <option value="__new__">+ 새 카테고리 만들기</option>
+      </select>
+    </div>` : '';
+  const isFav = r[COLS.fav] === 1;
+  const rating = r[COLS.rating] || 0;
+  const stars = [1, 2, 3, 4, 5].map(i => `
+    <button class="star-btn no-nav press" data-video="${r[COLS.id]}" data-star="${i}" title="${i}점">${i <= rating ? '★' : '☆'}</button>
+  `).join('');
+  const prefRow = `
+    <div class="pref-row no-nav">
+      <button class="fav-btn no-nav press ${isFav ? 'on' : ''}" data-video="${r[COLS.id]}" title="즐겨찾기">${isFav ? '❤️' : '🤍'}</button>
+      <span class="stars no-nav">${stars}</span>
+    </div>`;
+  const analyzeInfo = r[COLS.analyzed] === 1
+    ? `<span class="analyze-badge no-nav" title="미디어 콘텐츠 분석 위키에 저장됨">📑 분석완료</span>
+       <button class="analyze-view-btn no-nav press" data-video="${r[COLS.id]}" title="분석 내용 보기">📖 분석내용 보기</button>`
+    : '';
+  return `
+    <div class="vid press" data-url="${videoUrl}">
+      <img class="vid-thumb" src="${thumbUrl}" alt="" loading="lazy" onerror="this.style.display='none'">
+      <div class="title">${escapeHtml(r[COLS.title])}</div>
+      <div class="metrics">
+        ${prefRow}
+        <div class="views"><b>${fmt(r[COLS.views])}</b>조회수</div>
+        <button class="link-btn no-nav press" data-url="${videoUrl}" title="영상 링크 복사">🔗 링크 복사</button>
+        ${analyzeInfo}
+      </div>
+      <div class="meta">
+        <span class="chip">${escapeHtml(r[COLS.channel])}</span>
+        <span>${r[COLS.date]}</span>
+      </div>
+      ${editRow}
+    </div>
+  `;
+}
+
+function playFadeUp(el) {
+  el.classList.remove('anim');
+  void el.offsetWidth;
+  el.classList.add('anim');
 }
 
 function renderList() {
@@ -589,51 +691,39 @@ function renderList() {
 
   const MAX_RENDER = 300;
   const shown = rows.slice(0, MAX_RENDER);
-  const editLabels = labelsFor(STATE.facet);
-  const editCol = colIndex(STATE.facet);
-  const editFacetName = STATE.facet === 'off' ? '공식 카테고리' : '관심 주제';
-
-  listEl.innerHTML = shown.map(r => {
-    const videoUrl = `https://www.youtube.com/watch?v=${r[COLS.id]}`;
-    const thumbUrl = `https://i.ytimg.com/vi/${r[COLS.id]}/mqdefault.jpg`;
-    const editRow = `
-      <div class="edit-row no-nav">
-        <label>${editFacetName}</label>
-        <select class="edit-select no-nav" data-video="${r[COLS.id]}">
-          ${editLabels.map((t, i) => `<option value="${i}" ${i === r[editCol] ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}
-          <option value="__new__">+ 새 카테고리 만들기</option>
-        </select>
-      </div>`;
-    const isFav = r[COLS.fav] === 1;
-    const rating = r[COLS.rating] || 0;
-    const stars = [1, 2, 3, 4, 5].map(i => `
-      <button class="star-btn no-nav ${i <= rating ? 'on' : ''}" data-video="${r[COLS.id]}" data-star="${i}" title="${i}점">${i <= rating ? '★' : '☆'}</button>
-    `).join('');
-    const prefRow = `
-      <div class="pref-row no-nav">
-        <button class="fav-btn no-nav ${isFav ? 'on' : ''}" data-video="${r[COLS.id]}" title="즐겨찾기">${isFav ? '❤️' : '🤍'}</button>
-        <span class="stars no-nav">${stars}</span>
-      </div>`;
-    return `
-      <div class="vid" data-url="${videoUrl}">
-        <img class="vid-thumb" src="${thumbUrl}" alt="" loading="lazy" onerror="this.style.display='none'">
-        <div class="title">${escapeHtml(r[COLS.title])}</div>
-        <div class="metrics">
-          ${prefRow}
-          <div class="views"><b>${fmt(r[COLS.views])}</b>조회수</div>
-          <button class="link-btn no-nav" data-url="${videoUrl}" title="영상 링크 복사">🔗 링크 복사</button>
-        </div>
-        <div class="meta">
-          <span class="chip">${escapeHtml(r[COLS.channel])}</span>
-          <span>${r[COLS.date]}</span>
-        </div>
-        ${editRow}
-      </div>
-    `;
-  }).join('') + (rows.length > MAX_RENDER ? `<div class="empty">상위 ${MAX_RENDER}개만 표시됩니다. 검색으로 좁혀보세요.</div>` : '');
+  listEl.innerHTML = shown.map(videoCardHtml).join('') + (rows.length > MAX_RENDER ? `<div class="empty">상위 ${MAX_RENDER}개만 표시됩니다. 검색으로 좁혀보세요.</div>` : '');
+  playFadeUp(listEl);
 }
 
-function renderAll() { renderStats(); renderComposition(); renderChart(); renderList(); }
+function renderFavList() {
+  const labels = labelsFor(STATE.facet);
+  const rows = getFavoriteRows();
+  const totalFav = STATE.payload.rows.filter(r => r[COLS.fav] === 1).length;
+
+  const clearChip = document.getElementById('favClearChip');
+  const clearLabel = document.getElementById('favClearLabel');
+  if (STATE.selectedIndex !== null) { clearChip.hidden = false; clearLabel.textContent = labels[STATE.selectedIndex]; }
+  else clearChip.hidden = true;
+
+  document.getElementById('favResultCount').textContent = `${fmt(rows.length)}개 영상`;
+
+  const listEl = document.getElementById('favVidList');
+  if (rows.length === 0) {
+    listEl.innerHTML = (STATE.favOnly && totalFav === 0)
+      ? `<div class="empty">아직 즐겨찾기한 영상이 없어요.<br>🤍를 눌러 추가해보세요.</div>`
+      : `<div class="empty">조건에 맞는 영상이 없습니다.</div>`;
+    return;
+  }
+  const MAX_RENDER = 300;
+  listEl.innerHTML = rows.slice(0, MAX_RENDER).map(videoCardHtml).join('');
+  playFadeUp(listEl);
+}
+
+function updateSegmentThumb() {
+  const thumb = document.getElementById('segThumb');
+  if (!thumb) return;
+  thumb.style.transform = STATE.facet === 'off' ? 'translateX(0%)' : 'translateX(calc(100% + 2px))';
+}
 
 function setFacet(f) {
   STATE.facet = f;
@@ -644,12 +734,17 @@ function setFacet(f) {
   document.getElementById('panelSub').textContent = f === 'off'
     ? 'YouTube가 영상마다 매긴 공식 분류 기준입니다.'
     : '제목 키워드를 바탕으로 추정한 관심사 기준입니다. "미분류"는 특정 주제에 속하지 않는 일반 콘텐츠입니다.';
-  renderComposition(); renderChart(); renderList();
+  updateSegmentThumb();
+  renderComposition();
+  renderChart();
+  renderCategoryChips();
+  renderList();
+  renderFavList();
 }
 
 /* =========================================================================
  * 분류 수정 / 즐겨찾기 / 별점 — 01_작업/override_store.py 의 동작을 그대로 이식,
- * 저장은 로컬 파일 대신 구글 드라이브(appDataFolder)로.
+ * 저장은 로컬 파일 대신 Firestore(users/{uid}/appData)로.
  * ========================================================================= */
 async function renameCategory(f, oldName, newName) {
   const k = FACET_KEYS[f];
@@ -664,7 +759,8 @@ async function renameCategory(f, oldName, newName) {
   for (const key of Object.keys(STATE.overrides[k.ren])) if (STATE.overrides[k.ren][key] === key) delete STATE.overrides[k.ren][key];
 
   try { await persistOverrides(); } catch (e) { alert('저장에 실패했습니다: ' + e.message); }
-  rebuildPayload(); renderAll();
+  rebuildPayload();
+  renderStats(); renderComposition(); renderChart(); renderCategoryChips(); renderList(); renderFavList();
 }
 
 async function deleteCategory(f, name) {
@@ -691,15 +787,16 @@ async function handleEditChange(e) {
 
   if (sel.value === '__new__') {
     const name = (prompt('새 카테고리 이름을 입력하세요') || '').trim();
-    if (!name) { renderList(); return; }
-    if (name === PROTECTED) { alert(`"${PROTECTED}"는 시스템에서 특별하게 쓰는 이름이라 사용할 수 없어요.`); renderList(); return; }
+    if (!name) { renderList(); renderFavList(); return; }
+    if (name === PROTECTED) { alert(`"${PROTECTED}"는 시스템에서 특별하게 쓰는 이름이라 사용할 수 없어요.`); renderList(); renderFavList(); return; }
     await createCategory(f, name);
     await saveOverrideForVideo(f, videoId, name);
   } else {
     const idx = Number(sel.value);
     await saveOverrideForVideo(f, videoId, labelsFor(f)[idx]);
   }
-  rebuildPayload(); renderAll();
+  rebuildPayload();
+  renderStats(); renderComposition(); renderChart(); renderCategoryChips(); renderList(); renderFavList();
 }
 
 async function toggleFavorite(videoId) {
@@ -707,10 +804,10 @@ async function toggleFavorite(videoId) {
   if (!row) return;
   const next = row[COLS.fav] === 1 ? 0 : 1;
   row[COLS.fav] = next;
-  renderList();
+  renderList(); renderFavList();
   if (next) STATE.overrides.favorites[videoId] = true; else delete STATE.overrides.favorites[videoId];
   try { await persistOverrides(); } catch (e) {
-    row[COLS.fav] = next === 1 ? 0 : 1; renderList();
+    row[COLS.fav] = next === 1 ? 0 : 1; renderList(); renderFavList();
     alert('저장에 실패했습니다: ' + e.message);
   }
 }
@@ -721,10 +818,10 @@ async function setRating(videoId, stars) {
   const prev = row[COLS.rating] || 0;
   const next = prev === stars ? 0 : stars;
   row[COLS.rating] = next;
-  renderList();
+  renderList(); renderFavList();
   if (next <= 0) delete STATE.overrides.ratings[videoId]; else STATE.overrides.ratings[videoId] = Math.max(1, Math.min(5, next));
   try { await persistOverrides(); } catch (e) {
-    row[COLS.rating] = prev; renderList();
+    row[COLS.rating] = prev; renderList(); renderFavList();
     alert('저장에 실패했습니다: ' + e.message);
   }
 }
@@ -776,46 +873,268 @@ function exportVisibleToCsv() {
 }
 
 /* =========================================================================
- * 이벤트 연결
+ * 분석 내용 팝업 — PC에서 이미 분석해서 STATE.analysis에 들어있는 위키 문서(마크다운)를
+ * 화면에 보여준다. 여기서 새로 분석을 실행하지는 않는다(exe 전용 기능).
+ * 외부 라이브러리 없이, 이 문서들이 실제로 쓰는 문법(제목·인용·목록·표·굵게·[[링크]])만
+ * 가볍게 변환한다 (01_작업/dashboard_template.html 과 동일 로직).
  * ========================================================================= */
-document.getElementById('tab-official').addEventListener('click', () => setFacet('off'));
-document.getElementById('tab-topic').addEventListener('click', () => setFacet('topic'));
-document.getElementById('clearChip').addEventListener('click', () => { STATE.selectedIndex = null; renderChart(); renderList(); });
-document.getElementById('searchInput').addEventListener('input', e => { STATE.query = e.target.value; renderList(); });
-document.getElementById('sortSelect').addEventListener('change', e => { STATE.sortMode = e.target.value; renderList(); });
-document.getElementById('exportBtn').addEventListener('click', exportVisibleToCsv);
+function mdInline(s) {
+  let t = escapeHtml(s);
+  t = t.replace(/\[\[([^\]]+)\]\]/g, '<span class="md-wikilink">🔗 $1</span>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return t;
+}
 
-document.getElementById('favFilterBtn').addEventListener('click', () => {
-  STATE.favOnly = !STATE.favOnly;
-  const btn = document.getElementById('favFilterBtn');
-  btn.textContent = STATE.favOnly ? '❤️ 즐겨찾기만 보기' : '🤍 즐겨찾기만 보기';
-  btn.classList.toggle('active', STATE.favOnly);
-  renderList();
-});
+function mdToHtml(md) {
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  let html = '';
+  let listType = null;
+  let tableRows = [];
 
-document.getElementById('vidList').addEventListener('click', e => {
-  const favBtn = e.target.closest('.fav-btn');
-  if (favBtn) { toggleFavorite(favBtn.dataset.video); return; }
-  const starBtn = e.target.closest('.star-btn');
-  if (starBtn) { setRating(starBtn.dataset.video, Number(starBtn.dataset.star)); return; }
-  const linkBtn = e.target.closest('.link-btn');
-  if (linkBtn) {
-    copyToClipboard(linkBtn.dataset.url).then(ok => {
-      const original = linkBtn.textContent;
-      linkBtn.textContent = ok ? '✅ 복사됨' : '복사 실패';
-      linkBtn.classList.toggle('copied', ok);
-      setTimeout(() => { linkBtn.textContent = original; linkBtn.classList.remove('copied'); }, 1200);
-    });
+  const closeList = () => { if (listType) { html += `</${listType}>`; listType = null; } };
+  const flushTable = () => {
+    if (!tableRows.length) return;
+    const [header, sep, ...rest] = tableRows;
+    const isSep = sep && sep.every(c => /^:?-+:?$/.test(c.trim()));
+    const bodyRows = isSep ? rest : (sep ? [sep, ...rest] : rest);
+    html += '<table class="md-table"><thead><tr>' + header.map(c => `<th>${mdInline(c)}</th>`).join('') + '</tr></thead><tbody>' +
+      bodyRows.map(r => `<tr>${r.map(c => `<td>${mdInline(c)}</td>`).join('')}</tr>`).join('') + '</tbody></table>';
+    tableRows = [];
+  };
+
+  for (const line of lines) {
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      tableRows.push(line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim()));
+      continue;
+    }
+    if (tableRows.length) flushTable();
+
+    if (/^\s*>\s?/.test(line)) {
+      closeList();
+      html += `<blockquote>${mdInline(line.replace(/^\s*>\s?/, ''))}</blockquote>`;
+      continue;
+    }
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) {
+      closeList();
+      const level = Math.min(h[1].length, 3);
+      html += `<h${level}>${mdInline(h[2])}</h${level}>`;
+      continue;
+    }
+    const ul = line.match(/^\s*[-*]\s+(.*)$/);
+    if (ul) {
+      if (listType !== 'ul') { closeList(); html += '<ul>'; listType = 'ul'; }
+      html += `<li>${mdInline(ul[1])}</li>`;
+      continue;
+    }
+    const ol = line.match(/^\s*\d+\.\s+(.*)$/);
+    if (ol) {
+      if (listType !== 'ol') { closeList(); html += '<ol>'; listType = 'ol'; }
+      html += `<li>${mdInline(ol[1])}</li>`;
+      continue;
+    }
+    closeList();
+    if (line.trim() !== '') html += `<p>${mdInline(line)}</p>`;
+  }
+  closeList();
+  flushTable();
+  return html;
+}
+
+function parseFrontmatter(raw) {
+  const m = raw.match(/^---\n([\s\S]*?)\n---\n?/);
+  if (!m) return { meta: {}, body: raw };
+  const meta = {};
+  m[1].split('\n').forEach(line => {
+    const kv = line.match(/^(\w+):\s*(.*)$/);
+    if (kv) meta[kv[1]] = kv[2].trim();
+  });
+  return { meta, body: raw.slice(m[0].length) };
+}
+
+let currentAnalysisText = '';
+
+function openAnalysisModal(videoId) {
+  const backdrop = document.getElementById('analysisModalBackdrop');
+  const titleEl = document.getElementById('analysisModalTitle');
+  const metaEl = document.getElementById('analysisModalMeta');
+  const bodyEl = document.getElementById('analysisModalBody');
+
+  const row = STATE.payload.rows.find(r => r[COLS.id] === videoId);
+  const title = row ? row[COLS.title] : '분석 내용';
+  const entry = STATE.analysis[videoId];
+  titleEl.textContent = title;
+  currentAnalysisText = '';
+  backdrop.hidden = false;
+
+  if (!entry) {
+    metaEl.innerHTML = '';
+    bodyEl.innerHTML = `<div class="modal-error">분석 내용을 찾을 수 없습니다.</div>`;
     return;
   }
-  if (e.target.closest('.no-nav')) return;
-  const row = e.target.closest('.vid');
-  if (!row || !row.dataset.url) return;
-  window.open(row.dataset.url, '_blank', 'noopener');
-});
-document.getElementById('vidList').addEventListener('change', e => { if (e.target.classList.contains('edit-select')) handleEditChange(e); });
 
-document.getElementById('refreshBtn').addEventListener('click', async () => {
+  const { meta, body } = parseFrontmatter(entry.content || '');
+  currentAnalysisText = `${title}\n\n${body.trim()}`;
+  const chips = [];
+  if (entry.category) chips.push(`<span class="chip">${escapeHtml(entry.category)}</span>`);
+  if (meta.status) chips.push(`<span class="chip status-${escapeHtml(meta.status)}">${escapeHtml(meta.status)}</span>`);
+  if (meta.updated || entry.date) chips.push(`<span class="chip">🗓 ${escapeHtml(meta.updated || entry.date)}</span>`);
+  (meta.tags || '').replace(/^\[|\]$/g, '').split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
+    chips.push(`<span class="chip">#${escapeHtml(t)}</span>`);
+  });
+  metaEl.innerHTML = chips.join('');
+  bodyEl.innerHTML = mdToHtml(body);
+}
+
+function closeAnalysisModal() { document.getElementById('analysisModalBackdrop').hidden = true; }
+
+document.getElementById('analysisModalClose')?.addEventListener('click', closeAnalysisModal);
+document.getElementById('analysisModalCopy')?.addEventListener('click', () => {
+  const btn = document.getElementById('analysisModalCopy');
+  if (!currentAnalysisText) return;
+  copyToClipboard(currentAnalysisText).then(ok => {
+    const original = btn.textContent;
+    btn.textContent = ok ? '✅ 복사됨' : '복사 실패';
+    btn.classList.toggle('copied', ok);
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1200);
+  });
+});
+document.getElementById('analysisModalBackdrop')?.addEventListener('click', e => {
+  if (e.target.id === 'analysisModalBackdrop') closeAnalysisModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('analysisModalBackdrop').hidden) closeAnalysisModal();
+});
+
+/* =========================================================================
+ * 하단 탭바 · 화면(홈/목록/즐겨찾기/설정) 전환 — iOS 앱처럼 탭을 누르면 부드럽게 전환된다.
+ * ========================================================================= */
+function activateTab(btn) {
+  document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const screenName = btn.dataset.screen;
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === screenName));
+  document.getElementById('screenTitle').textContent = btn.dataset.title || '';
+  document.getElementById('content').scrollTop = 0;
+}
+
+function toggleFavOnly() {
+  STATE.favOnly = !STATE.favOnly;
+  const btn = document.getElementById('favFavFilterBtn');
+  btn.textContent = STATE.favOnly ? '❤️ 즐겨찾기만 보기' : '🤍 즐겨찾기만 보기';
+  btn.classList.toggle('active', STATE.favOnly);
+  renderFavList();
+}
+
+document.querySelectorAll('.tab-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    // 즐겨찾기 탭에 처음 들어갈 때는 기본으로 즐겨찾기만 보이게 켜준다 (안에서 칩으로 끌 수 있음).
+    if (btn.id === 'tabFavBtn' && !STATE.favOnly) toggleFavOnly();
+    activateTab(btn);
+  });
+});
+window.addEventListener('resize', () => { if (document.getElementById('tabHomeBtn').classList.contains('active')) updateSegmentThumb(); });
+
+/* =========================================================================
+ * 이벤트 연결
+ * ========================================================================= */
+document.getElementById('tab-official')?.addEventListener('click', () => setFacet('off'));
+document.getElementById('tab-topic')?.addEventListener('click', () => setFacet('topic'));
+document.getElementById('clearChip')?.addEventListener('click', () => { STATE.selectedIndex = null; renderChart(); renderCategoryChips(); renderList(); });
+document.getElementById('favClearChip')?.addEventListener('click', () => { STATE.selectedIndex = null; renderChart(); renderCategoryChips(); renderList(); renderFavList(); });
+document.getElementById('searchInput')?.addEventListener('input', e => { STATE.query = e.target.value; renderList(); });
+document.getElementById('sortSelect')?.addEventListener('change', e => { STATE.sortMode = e.target.value; renderList(); });
+document.getElementById('favSearchInput')?.addEventListener('input', e => { STATE.favQuery = e.target.value; renderFavList(); });
+document.getElementById('favSortSelect')?.addEventListener('change', e => { STATE.favSortMode = e.target.value; renderFavList(); });
+document.getElementById('favFavFilterBtn')?.addEventListener('click', toggleFavOnly);
+document.getElementById('favAnalyzedFilterBtn')?.addEventListener('click', () => {
+  STATE.favAnalyzedOnly = !STATE.favAnalyzedOnly;
+  document.getElementById('favAnalyzedFilterBtn').classList.toggle('active', STATE.favAnalyzedOnly);
+  renderFavList();
+});
+
+document.getElementById('adminToggleBtn')?.addEventListener('click', () => {
+  STATE.adminMode = !STATE.adminMode;
+  const btn = document.getElementById('adminToggleBtn');
+  btn.textContent = STATE.adminMode ? '🔒 관리자 모드 끄기' : '🔓 관리자 모드';
+  btn.classList.toggle('active', STATE.adminMode);
+  document.getElementById('adminBanner').classList.toggle('show', STATE.adminMode);
+  renderChart();
+  renderList();
+  renderFavList();
+});
+
+document.getElementById('overridesImportInput')?.addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  if (!confirm('현재 웹앱에 저장된 즐겨찾기·별점·분류수정을 로컬 파일 내용으로 덮어씁니다. 계속할까요?')) return;
+  try {
+    const text = await file.text();
+    const imported = JSON.parse(text);
+    if (!imported || typeof imported !== 'object') throw new Error('올바른 즐겨찾기·분류 파일이 아닙니다.');
+    STATE.overrides = { ...overridesDefault(), ...imported };
+    await persistOverrides();
+    rebuildPayload();
+    renderStats(); renderComposition(); renderChart(); renderCategoryChips(); renderList(); renderFavList();
+    alert('즐겨찾기·별점·분류수정을 가져왔습니다.');
+  } catch (err) {
+    alert('가져오기에 실패했습니다: ' + err.message);
+  }
+});
+
+document.getElementById('analysisImportInput')?.addEventListener('change', async e => {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = ''; // 같은 파일을 다시 골라도 change가 또 발생하게
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const imported = JSON.parse(text);
+    if (!imported || typeof imported !== 'object') throw new Error('올바른 분석 자료 파일이 아닙니다.');
+    STATE.analysis = { ...STATE.analysis, ...imported };
+    await fsWriteJson(DOC_NAMES.analysis, STATE.analysis);
+    rebuildPayload();
+    renderStats(); renderComposition(); renderChart(); renderCategoryChips(); renderList(); renderFavList();
+    alert(`분석 자료 ${Object.keys(imported).length}개를 가져왔습니다.`);
+  } catch (err) {
+    alert('가져오기에 실패했습니다: ' + err.message);
+  }
+});
+document.getElementById('exportBtn')?.addEventListener('click', exportVisibleToCsv);
+document.getElementById('categoryChips')?.addEventListener('click', handleCategoryChipClick);
+document.getElementById('favCategoryChips')?.addEventListener('click', handleCategoryChipClick);
+
+function bindListInteractions(containerId) {
+  const container = document.getElementById(containerId);
+  container.addEventListener('click', e => {
+    const favBtn = e.target.closest('.fav-btn');
+    if (favBtn) { toggleFavorite(favBtn.dataset.video); return; }
+    const starBtn = e.target.closest('.star-btn');
+    if (starBtn) { setRating(starBtn.dataset.video, Number(starBtn.dataset.star)); return; }
+    const viewBtn = e.target.closest('.analyze-view-btn');
+    if (viewBtn) { openAnalysisModal(viewBtn.dataset.video); return; }
+    const linkBtn = e.target.closest('.link-btn');
+    if (linkBtn) {
+      copyToClipboard(linkBtn.dataset.url).then(ok => {
+        const original = linkBtn.textContent;
+        linkBtn.textContent = ok ? '✅ 복사됨' : '복사 실패';
+        linkBtn.classList.toggle('copied', ok);
+        setTimeout(() => { linkBtn.textContent = original; linkBtn.classList.remove('copied'); }, 1200);
+      });
+      return;
+    }
+    if (e.target.closest('.no-nav')) return;
+    const row = e.target.closest('.vid');
+    if (!row || !row.dataset.url) return;
+    window.open(row.dataset.url, '_blank', 'noopener');
+  });
+  container.addEventListener('change', e => { if (e.target.classList.contains('edit-select')) handleEditChange(e); });
+}
+bindListInteractions('vidList');
+bindListInteractions('favVidList');
+
+document.getElementById('refreshBtn')?.addEventListener('click', async () => {
   if (!confirm('YouTube에서 최신 좋아요 목록을 다시 받아옵니다. 인터넷 연결이 필요하고 몇 분 정도 걸릴 수 있어요. 계속할까요?')) return;
   const btn = document.getElementById('refreshBtn');
   const original = btn.textContent;
@@ -827,10 +1146,10 @@ document.getElementById('refreshBtn').addEventListener('click', async () => {
     const categoryNames = await fetchCategoryNames();
     STATE.rawVideos = raw;
     STATE.categoryNames = categoryNames;
-    setLoadingText('드라이브에 저장하는 중...');
-    await driveWriteJson(DRIVE_FILES.cache, { fetchedAt: new Date().toISOString(), videos: raw, categoryNames });
+    setLoadingText('저장하는 중...');
+    await fsWriteJson(DOC_NAMES.cache, { fetchedAt: new Date().toISOString(), videos: raw, categoryNames });
     rebuildPayload();
-    renderAll();
+    renderStats(); renderComposition(); renderChart(); renderCategoryChips(); renderList(); renderFavList();
     hideLoading();
     alert(`업데이트 완료! 좋아요 영상 ${raw.length}개를 받아왔습니다.`);
   } catch (e) {
@@ -842,30 +1161,27 @@ document.getElementById('refreshBtn').addEventListener('click', async () => {
   }
 });
 
-document.getElementById('signInBtn').addEventListener('click', () => {
+document.getElementById('signInBtn')?.addEventListener('click', () => {
   if (!isConfigured()) { document.getElementById('setupNote').classList.add('show'); return; }
   if (!tokenClient) { setLoginStatus('아직 초기화 중입니다. 잠시 후 다시 눌러주세요.', true); return; }
   setLoginStatus('로그인 창을 여는 중...');
   tokenClient.requestAccessToken({ prompt: '' });
 });
 
-document.getElementById('signOutBtn').addEventListener('click', () => {
+document.getElementById('signOutBtn')?.addEventListener('click', () => {
   if (accessToken && window.google) google.accounts.oauth2.revoke(accessToken, () => {});
+  fbSignOut(auth).catch(() => {});
   accessToken = null;
   clearTimeout(refreshTimer);
   localStorage.removeItem(AUTOLOGIN_KEY); // 다음에 열 때 자동 재로그인을 시도하지 않게 한다
-  STATE.rawVideos = []; STATE.categoryNames = {}; STATE.overrides = overridesDefault();
+  STATE.rawVideos = []; STATE.categoryNames = {}; STATE.overrides = overridesDefault(); STATE.analysis = {};
   document.getElementById('app').classList.remove('show');
   document.getElementById('loginScreen').style.display = 'flex';
   setLoginStatus('');
 });
 
 /* =========================================================================
- * 시작
+ * 시작 — 로그인 버튼이 항상 눌리도록, 초기화는 다른 부분이 실패해도 반드시 실행한다.
  * ========================================================================= */
-document.getElementById('setupNote').classList.toggle('show', !isConfigured());
 initGisWhenReady();
-
-if ('serviceWorker' in navigator) {
-  // 지금은 서비스워커 없이도 동작한다(오프라인 캐시는 다음 단계 과제) — 등록 시도만 조용히 생략.
-}
+document.getElementById('setupNote')?.classList.toggle('show', !isConfigured());
